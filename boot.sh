@@ -2,19 +2,22 @@
 # boot.sh -- boot out/minigui.rom on QEMU Syborg (ghcr.io/phorepoc/qemu-syborg), type `dir` into ESHELL, and write
 # out/fb.png (the screen) and out/serial.log (the kernel's serial output).
 #   SECS     how long the emulator runs (default 90)   DELAY   seconds to wait before typing (default 55)
+#   RUN      the command typed into ESHELL (default `dir`; lower-case letters and digits only, e.g. RUN=neohello)
 set -eu
 cd "$(dirname "$0")"
 [ -f out/minigui.rom ] || { echo "out/minigui.rom is missing: run ./build.sh first" >&2; exit 1; }
 QEMU_IMAGE="${QEMU_IMAGE:-ghcr.io/phorepoc/qemu-syborg:latest}"
 BUILD_IMAGE="${BUILD_IMAGE:-ghcr.io/phorepoc/base:latest}"
-SECS="${SECS:-90}"; DELAY="${DELAY:-55}"
+SECS="${SECS:-90}"; DELAY="${DELAY:-55}"; RUN="${RUN:-dir}"
+case $RUN in *[!a-z0-9]*|"") echo "RUN may hold only a-z and 0-9" >&2; exit 2 ;; esac
+KEYS="$(echo "$RUN" | sed 's/./& /g')ret"
 rm -f out/fb.ppm out/fb.png out/serial.log
 USER_ARGS=""
 [ "$(uname -s)" = Linux ] && USER_ARGS="--user $(id -u):$(id -g)"
 # The QEMU monitor is the container's stdin: `sendkey` types into the emulated keyboard. ESHELL needs a while to come up.
 # shellcheck disable=SC2086
 { sleep "$DELAY"
-  for k in d i r ret; do echo "sendkey $k"; sleep 0.5; done
+  for k in $KEYS; do echo "sendkey $k"; sleep 0.5; done
   sleep $((SECS - DELAY - 3))
 } | docker run --rm -i $USER_ARGS -v "$PWD/out:/work" \
 	-e SERIAL=/work/serial.log -e FB=/work/fb.ppm -e C_DRIVE=/work/c_drive.img \

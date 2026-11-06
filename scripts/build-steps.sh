@@ -36,6 +36,14 @@ step estart python3 emitter/build_estart_exe.py
 step elocal-fsy python3 emitter/build_elocal_fsy.py
 step ekdata python3 emitter/build_ekdata_dll.py
 step eshell python3 emitter/build_eshell_exe.py
+# NeoSymbian: a Rust EXE (NeoSymbian/e32-rs) in the ROM (Z:\sys\bin\NEOHELLO.EXE) when its staticlib was dropped into
+# rust/; without it the build is unchanged. ROM, not C:: the loader rejects these images from C: with KErrCorrupt.
+RUST_LIB="${RUST_LIB:-rust/librust_hello.a}"
+if [ -f "$RUST_LIB" ]; then
+	step rust-exe env RUST_LIB="$RUST_LIB" python3 emitter/build_rust_exe.py
+else
+	rm -f emitter/neohello.exe
+fi
 step rom bash kernel/build_rom.sh
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
 # RAM path), so the font lives on a non-ROM drive

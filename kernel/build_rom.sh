@@ -65,6 +65,8 @@ ARGS=.ekern-build/rombuild.args
     --data 'Sys\Data\estart.txt=src/oss.FCL.sf.adapt.Qemu/baseport/syborg/estart.txt' \
     --data 'System\Data\wsini.ini='$G'/windowing/windowserver/minigui/group/wsini_minigui-stripped.ini' \
     --xinfo 'databss=0x00400000,cap1=0xFFFFFFFF,cap2=0xFFFFFFFF'
+  # NeoSymbian: the Rust EXE (scripts/build-steps.sh builds it only when a Rust staticlib is present)
+  [ ! -f emitter/neohello.exe ] || printf '%s\n' --xip 'Sys\Bin\NEOHELLO.EXE=emitter/neohello.exe'
   python3 kernel/rom_args.py
 } > "$ARGS"
 python3 tools/rombuild.py .bootstrap-build/boot.bin out/minigui.rom --primary "$O/ekern.bin" \

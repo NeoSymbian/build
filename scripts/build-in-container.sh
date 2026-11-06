@@ -17,6 +17,9 @@ grep -v '^#' /work/sources.lock | while IFS="$(printf '	')" read -r pkg commit; 
 done
 # our own files: always (small)
 tar -C /work -cf - emitter kernel toolchain tools scripts | tar -C /build -xf -
+# NeoSymbian: the Rust staticlib(s) dropped into rust/ (none = baseline build)
+rm -rf /build/rust
+[ ! -d /work/rust ] || tar -C /work -cf - rust | tar -C /build -xf -
 cd /build
 rc=0
 bash scripts/build-steps.sh || rc=$?

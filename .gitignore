@@ -19,3 +19,4 @@
 /emitter/*.meta
 __pycache__/
 /toolchain/generated/
+/rust/

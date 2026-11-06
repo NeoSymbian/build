@@ -7,6 +7,8 @@
 #   MONITOR  raw QEMU monitor commands sent after RUN, `;`-separated, MON_GAP seconds apart (default 1; drags need
 #            ~0.3) (e.g. a tap on the absolute pointer: MONITOR="mouse_move 3285 27904;mouse_button 1;mouse_button 0";
 #            0..0x7FFF covers the screen; `info status` is a harmless filler to wait).
+#   SCREEN   the screen size, e.g. SCREEN=1080x2160 (the Pixel 3a XL); default the board's 768x640. The board
+#            description is patched (tools/dtb_screen.py) and the Symbian frame buffer driver sizes itself from it.
 set -eu
 cd "$(dirname "$0")"
 [ -f out/minigui.rom ] || { echo "out/minigui.rom is missing: run ./build.sh first" >&2; exit 1; }
@@ -27,6 +29,15 @@ REST=$((SECS - DELAY - 3 - GAP * (NCMD - 1) - MONSECS))
 rm -f out/fb.ppm out/fb.png out/serial.log
 USER_ARGS=""
 [ "$(uname -s)" = Linux ] && USER_ARGS="--user $(id -u):$(id -g)"
+DTB_ARGS=""
+if [ -n "${SCREEN:-}" ]; then
+	case $SCREEN in *[!0-9x]*|x*|*x|*x*x*) echo "SCREEN: WIDTHxHEIGHT, e.g. 1080x2160" >&2; exit 2 ;; esac
+	docker run --rm --entrypoint cat "$QEMU_IMAGE" /opt/qemu-syborg/syborg.dtb > out/syborg.dtb
+	# shellcheck disable=SC2086
+	docker run --rm $USER_ARGS -v "$PWD:/work" -w /work "$BUILD_IMAGE" \
+		python3 tools/dtb_screen.py out/syborg.dtb "out/syborg-$SCREEN.dtb" "$SCREEN"
+	DTB_ARGS="-e DTB=/work/syborg-$SCREEN.dtb"
+fi
 # The QEMU monitor is the container's stdin: `sendkey` types into the emulated keyboard. ESHELL needs a while to come up.
 # shellcheck disable=SC2086
 { sleep "$DELAY"
@@ -38,7 +49,7 @@ USER_ARGS=""
   [ -z "$MONITOR" ] || echo "$MONITOR" | tr ';' '\n' | while read -r m; do sleep "$MON_GAP"; echo "$m"; done
   sleep "$REST"
 } | docker run --rm -i $USER_ARGS -v "$PWD/out:/work" \
-	-e SERIAL=/work/serial.log -e FB=/work/fb.ppm -e C_DRIVE=/work/c_drive.img \
+	-e SERIAL=/work/serial.log -e FB=/work/fb.ppm -e C_DRIVE=/work/c_drive.img $DTB_ARGS \
 	"$QEMU_IMAGE" run-syborg /work/minigui.rom "$SECS" > out/qemu-monitor.log 2>&1 || true
 [ -s out/fb.ppm ] || { echo "no framebuffer dump: see out/qemu-monitor.log" >&2; exit 1; }
 # shellcheck disable=SC2086

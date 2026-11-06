@@ -4,8 +4,9 @@ Builds every EXE listed in rust/exes.txt, one per line (blank lines and # commen
 
     <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c]
 
-<lib.a> is relative to rust/, built for armv5te-none-eabi. Without a glue file the Rust library defines E32Main
-itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_glue.cpp) the C++ glue does. Each is linked with the
+<lib.a> is relative to rust/, built for armv5te-none-eabi; `-` links no Rust at all (a C++-only test program that
+needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Without a glue file the Rust library
+defines E32Main itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_glue.cpp) the C++ glue does. Each is linked with the
 EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp), import veneers from the frozen
 .def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name>, emitter/rust_rom.args (the
 --xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
@@ -57,7 +58,9 @@ def _symcc(src: str, obj: str, flags: list[str]) -> str:
     return obj
 
 
-def _link(objs: list[str], lib: str, out_elf: str, ignore_unresolved: bool) -> None:
+def _link(
+    objs: list[str], lib: str | None, out_elf: str, ignore_unresolved: bool
+) -> None:
     args = [
         BE.GCC,
         "-nostdlib",
@@ -71,7 +74,7 @@ def _link(objs: list[str], lib: str, out_elf: str, ignore_unresolved: bool) -> N
         "-march=armv5te",
         "-marm",
         *objs,
-        lib,
+        *([lib] if lib else []),
         BE._libgcc(),
         "-o",
         out_elf,
@@ -81,7 +84,7 @@ def _link(objs: list[str], lib: str, out_elf: str, ignore_unresolved: bool) -> N
     subprocess.run(args, check=True)
 
 
-def parse_manifest(path: str) -> list[tuple[str, int, str, str | None, str]]:
+def parse_manifest(path: str) -> list[tuple[str, int, str | None, str | None, str]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -94,13 +97,16 @@ def parse_manifest(path: str) -> list[tuple[str, int, str, str | None, str]]:
         drive = opts.pop("drive", "z").lower()
         if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c"):
             sys.exit(f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c]")
-        name, uid3, lib = f[0], int(f[1], 0), os.path.join(RUST_DIR, f[2])
+        name, uid3 = f[0], int(f[1], 0)
+        lib = None if f[2] == "-" else os.path.join(RUST_DIR, f[2])
         stem, _, ext = name.partition(".")
         if not (0 < len(stem) <= 8 and ext.upper() == "EXE"):
             sys.exit(f"{path}:{n}: {name}: want an 8.3 .EXE name")
-        if not os.path.isfile(lib):
+        if lib and not os.path.isfile(lib):
             sys.exit(f"{path}:{n}: {lib} missing")
         glue = os.path.join(REPO, rest[0]) if rest else None
+        if not (lib or glue):
+            sys.exit(f"{path}:{n}: {name}: no Rust library (-) needs a glue file")
         exes.append((name.upper(), uid3, lib, glue, drive))
     if len({e[1] for e in exes}) != len(exes):
         sys.exit(f"{path}: duplicate uid3")
@@ -108,7 +114,7 @@ def parse_manifest(path: str) -> list[tuple[str, int, str, str | None, str]]:
 
 
 def build_one(
-    name: str, uid3: int, lib: str, glue: str | None, runtime: list[str]
+    name: str, uid3: int, lib: str | None, glue: str | None, runtime: list[str]
 ) -> bool:
     stem = name.split(".")[0].lower()
     workdir = BE.workdir("rust_" + stem)
@@ -140,7 +146,12 @@ def build_one(
     import_list = devlink.import_blocks(ext, imports)
     n_imp = sum(len(e) for _, e in import_list)
     print(
-        f"{name} uid3=0x{uid3:08X} ({'C++ glue + ' if glue else ''}Rust {os.path.basename(lib)})"
+        f"{name} uid3=0x{uid3:08X} "
+        + (
+            "(C++ only)"
+            if not lib
+            else f"({'C++ glue + ' if glue else ''}Rust {os.path.basename(lib)})"
+        )
     )
     print(
         f"  code: {len(ext.code)} B @0x{ext.code_base:X}   data: {len(ext.data)} B   bss: {ext.bss_size} B"

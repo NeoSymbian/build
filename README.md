@@ -17,7 +17,7 @@ how it shipped.
 ## Quick start
 
 You'll need Docker, git and about 4 GB of disk. It works on Linux, macOS and Windows, since the build always runs
-inside the [Phorepoc toolchain image](https://github.com/Phorepoc/toolchain).
+inside the NeoSymbian build image ([docker/toolchain](docker/toolchain), published as `ghcr.io/neosymbian/toolchain`).
 
 ```sh
 ./fetch.sh      # download the source into src/
@@ -28,7 +28,7 @@ inside the [Phorepoc toolchain image](https://github.com/Phorepoc/toolchain).
 The first build takes a few minutes on a big machine, or up to 20 on a laptop. After that only what changed gets
 rebuilt, and `FULL=1 ./build.sh` starts from scratch. Every step logs to `out/log/`.
 
-`boot.sh` uses the emulator image from [qemu-syborg](https://github.com/Phorepoc/qemu-syborg), whose README also
+`boot.sh` uses the emulator image from [qemu-syborg](https://github.com/NeoSymbian/qemu-syborg), whose README also
 explains how to run it by hand and watch it live. The CI does exactly these three steps on every push and keeps the
 screenshot and the serial log.
 

@@ -1,4 +1,4 @@
-# package<TAB>commit -- the Phorepoc forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
+# package<TAB>commit -- the NeoSymbian forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
 oss.FCL.sf.os.kernelhwsrv	434c8296515522a256d2635a070f18ea5be1f2a1
 oss.FCL.sf.os.ossrv	1e9520caca186c601dd9768449b86bc72be39a22

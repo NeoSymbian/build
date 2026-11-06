@@ -104,7 +104,7 @@ class Fat16:
                          self.root_ents, self.total if self.total < 0x10000 else 0, 0xF8,
                          self.fatsz, 63, 255, 0, self.total if self.total >= 0x10000 else 0)
         struct.pack_into("<BBBI", bpb, 36, 0x80, 0, 0x29, int(time.time()) & 0xFFFFFFFF)
-        bpb[43:54] = b"PHOREPOC   "
+        bpb[43:54] = b"NEOSYMBIAN "
         bpb[54:62] = b"FAT16   "
         bpb[510:512] = b"\x55\xAA"
         self.img[0:SECTOR] = bpb

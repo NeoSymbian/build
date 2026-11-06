@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-in-container.sh -- run inside ghcr.io/phorepoc/base with the checkout at /work and the build volume at /build:
+# build-in-container.sh -- run inside the build image (docker/toolchain) with the checkout at /work and the build volume at /build:
 # sync the checkout into the volume, run the build there (scripts/build-steps.sh), copy out/ back.
 set -eu
 [ -z "${FULL:-}" ] || find /build -mindepth 1 -maxdepth 1 -exec rm -rf {} +

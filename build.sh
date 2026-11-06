@@ -1,15 +1,15 @@
 #!/bin/sh
-# build.sh -- build out/minigui.rom (and out/c_drive.img) from src/ inside the Phorepoc build image.
+# build.sh -- build out/minigui.rom (and out/c_drive.img) from src/ inside the NeoSymbian build image (docker/toolchain).
 # Needs only Docker and a populated src/ (./fetch.sh).
 #
-# The build runs in a Docker volume (phorepoc-symbian-2010) rather than on the bind-mounted checkout: the sources are
+# The build runs in a Docker volume (BUILD_VOLUME, default neosymbian-build) rather than on the bind-mounted checkout: the sources are
 # ~1 GB in tens of thousands of small files, and a bind mount from a Windows or macOS host is far too slow for a
 # compiler. The volume also keeps the objects between runs (incremental builds); FULL=1 starts from scratch.
 # Results are copied back to out/.
 set -eu
 cd "$(dirname "$0")"
-IMAGE="${BUILD_IMAGE:-ghcr.io/phorepoc/base:latest}"
+IMAGE="${BUILD_IMAGE:-ghcr.io/neosymbian/toolchain@sha256:bac4fb83afdfad083138c48365974df9256b29901ea56798c78a4f955ce8d3b2}"	# docker/toolchain, pinned by digest
 [ -d src/oss.FCL.sf.os.kernelhwsrv ] || { echo "src/ is empty: run ./fetch.sh first" >&2; exit 1; }
 mkdir -p out
 exec docker run --rm -e FULL="${FULL:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
-	-v "$PWD:/work" -v "${BUILD_VOLUME:-phorepoc-symbian-2010}:/build" -w /work "$IMAGE" bash scripts/build-in-container.sh
+	-v "$PWD:/work" -v "${BUILD_VOLUME:-neosymbian-build}:/build" -w /work "$IMAGE" bash scripts/build-in-container.sh

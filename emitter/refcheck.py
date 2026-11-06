@@ -36,6 +36,11 @@ def check_image(data: bytes) -> CheckResult:
         struct.pack_into("<I", head, 0x14, KIMAGE_CRC_INITIALISER)
         if mem_crc32(bytes(head)) != _u32(data, 0x14):
             msgs.append("header CRC mismatch")
+    import_offset, dll_refs = _u32(data, 108), _u32(data, 84)
+    if dll_refs and (_u32(data, 44) >> 28) != 1:
+        msgs.append("imports not flagged ELF-format (a drive load fails with KErrCorrupt)")
+    if import_offset and import_offset + 4 <= len(data) and _u32(data, import_offset) < 4:
+        msgs.append("import section size word < 4")
     for name, off in (("import", 108), ("data", 104), ("code reloc", 112), ("data reloc", 116), ("export", 88)):
         v = _u32(data, off)
         if v > len(data):

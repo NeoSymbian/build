@@ -2,13 +2,14 @@
 
 Builds every EXE listed in rust/exes.txt, one per line (blank lines and # comments ignored):
 
-    <NAME.EXE> <uid3> <lib.a> [glue.cpp]
+    <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c]
 
 <lib.a> is relative to rust/, built for armv5te-none-eabi. Without a glue file the Rust library defines E32Main
 itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_glue.cpp) the C++ glue does. Each is linked with the
 EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp), import veneers from the frozen
-.def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name> and emitter/rust_rom.args (the
---xip lines kernel/build_rom.sh adds to the ROM).
+.def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name>, emitter/rust_rom.args (the
+--xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
+image: Sys/Bin/<NAME>=emitter/<name>.exe per line).
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]
 """
@@ -30,6 +31,7 @@ REPO = os.path.dirname(HERE)
 LD_SCRIPT = os.path.join(HERE, "efile.ld")
 RUST_DIR = os.path.join(REPO, "rust")
 ROM_ARGS = os.path.join(HERE, "rust_rom.args")
+CDRIVE_ARGS = os.path.join(HERE, "rust_cdrive.args")
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
 UID2 = 0
@@ -79,7 +81,7 @@ def _link(objs: list[str], lib: str, out_elf: str, ignore_unresolved: bool) -> N
     subprocess.run(args, check=True)
 
 
-def parse_manifest(path: str) -> list[tuple[str, int, str, str | None]]:
+def parse_manifest(path: str) -> list[tuple[str, int, str, str | None, str]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -87,16 +89,19 @@ def parse_manifest(path: str) -> list[tuple[str, int, str, str | None]]:
         f = line.split("#", 1)[0].split()
         if not f:
             continue
-        if len(f) not in (3, 4):
-            sys.exit(f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp]")
+        opts = dict(t.split("=", 1) for t in f[3:] if "=" in t)
+        rest = [t for t in f[3:] if "=" not in t]
+        drive = opts.pop("drive", "z").lower()
+        if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c"):
+            sys.exit(f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c]")
         name, uid3, lib = f[0], int(f[1], 0), os.path.join(RUST_DIR, f[2])
         stem, _, ext = name.partition(".")
         if not (0 < len(stem) <= 8 and ext.upper() == "EXE"):
             sys.exit(f"{path}:{n}: {name}: want an 8.3 .EXE name")
         if not os.path.isfile(lib):
             sys.exit(f"{path}:{n}: {lib} missing")
-        glue = os.path.join(REPO, f[3]) if len(f) == 4 else None
-        exes.append((name.upper(), uid3, lib, glue))
+        glue = os.path.join(REPO, rest[0]) if rest else None
+        exes.append((name.upper(), uid3, lib, glue, drive))
     if len({e[1] for e in exes}) != len(exes):
         sys.exit(f"{path}: duplicate uid3")
     return exes
@@ -182,16 +187,21 @@ def main() -> int:
         _symcc(s, os.path.join(rtdir, os.path.basename(s) + ".o"), [])
         for s in RUNTIME_SOURCES
     ]
-    results = [
-        build_one(*e, runtime) for e in exes
-    ]  # build every EXE even when one fails its check
+    results = [  # build every EXE even when one fails its check
+        build_one(name, uid3, lib, glue, runtime) for name, uid3, lib, glue, _ in exes
+    ]
     ok = all(results)
+
+    def img(name: str) -> str:
+        return f"emitter/{name.split('.')[0].lower()}.exe"
+
+    rom = [n for n, *_, d in exes if d == "z"]
+    cdrive = [n for n, *_, d in exes if d == "c"]
     with open(ROM_ARGS, "w") as fh:
-        fh.writelines(
-            f"--xip\nSys\\Bin\\{name}=emitter/{name.split('.')[0].lower()}.exe\n"
-            for name, *_ in exes
-        )
-    print(f"{ROM_ARGS}: {len(exes)} EXEs")
+        fh.writelines(f"--xip\nSys\\Bin\\{n}={img(n)}\n" for n in rom)
+    with open(CDRIVE_ARGS, "w") as fh:
+        fh.writelines(f"Sys/Bin/{n}={img(n)}\n" for n in cdrive)
+    print(f"{ROM_ARGS}: {len(rom)} EXEs in the ROM; {CDRIVE_ARGS}: {len(cdrive)} on C:")
     return 0 if ok else 1
 
 

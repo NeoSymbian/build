@@ -328,8 +328,10 @@ def build_dll(code: bytes, exports: list[int], *,
     hdr.uid1 = UID1_EXE if exe else UID1_DLL
     hdr.uid2 = uid2
     hdr.uid3 = uid3
-    # (the import format stays PE-flagged (0): the images are XIP, which never reads it)
-    hdr.flags = FLAG_ABI_EABI | FLAG_EPT_EKA2 | FLAG_HDRFMT_V | (0 if exe else FLAG_DLL)
+    # ELF import format: the import blocks hold code-word offsets (ELF-style). A PE flag makes the loader look for an
+    # import address table after iTextSize and fail an image loaded from a drive with KErrCorrupt (f32image.h
+    # ValidateImports); the ROM builder ignores the flag.
+    hdr.flags = FLAG_ABI_EABI | FLAG_EPT_EKA2 | FLAG_HDRFMT_V | FLAG_IMPFMT_ELF | (0 if exe else FLAG_DLL)
     if stack_size is not None:
         hdr.stack_size = stack_size
     if heap_min is not None:
@@ -359,7 +361,7 @@ def build_dll(code: bytes, exports: list[int], *,
         # size word inside counts only real content, so trailing pad is ignored.
         import_section += b"\x00" * (_align4(len(import_section)) - len(import_section))
     else:
-        import_section = struct.pack("<I", 0)  # size word only; no DLL blocks
+        import_section = struct.pack("<I", 4)  # size word only (it counts itself, f32image.h); no DLL blocks
     cursor = import_offset + len(import_section)
 
     # Data section (.data initialised bytes; .bss is bss_size zero-fill at run time). .data references are

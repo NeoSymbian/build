@@ -36,17 +36,20 @@ step estart python3 emitter/build_estart_exe.py
 step elocal-fsy python3 emitter/build_elocal_fsy.py
 step ekdata python3 emitter/build_ekdata_dll.py
 step eshell python3 emitter/build_eshell_exe.py
-# NeoSymbian: the Rust EXEs (NeoSymbian/e32-rs) listed in rust/exes.txt go into the ROM (Z:\sys\bin) through
-# emitter/rust_rom.args; without the manifest the build is unchanged. ROM, not C:: the loader rejects these images
-# from C: with KErrCorrupt.
+# NeoSymbian: the Rust EXEs (NeoSymbian/e32-rs) listed in rust/exes.txt go into the ROM (Z:\sys\bin, through
+# emitter/rust_rom.args) or, marked drive=c, onto C:\sys\bin (emitter/rust_cdrive.args); without the manifest the
+# build is unchanged.
 if [ -f rust/exes.txt ]; then
 	step rust-exes python3 emitter/build_rust_exe.py rust/exes.txt
 else
-	rm -f emitter/rust_rom.args
+	rm -f emitter/rust_rom.args emitter/rust_cdrive.args
 fi
 step rom bash kernel/build_rom.sh
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
 # RAM path), so the font lives on a non-ROM drive
+C_EXTRA=""
+[ ! -f emitter/rust_cdrive.args ] || C_EXTRA=$(cat emitter/rust_cdrive.args)
+# shellcheck disable=SC2086
 step c-drive python3 tools/mkfat.py out/c_drive.img \
-	"Resource/Fonts/ceurope.gdr=src/oss.FCL.sf.os.graphics/graphicstest/uibench/data/CEUROPE.GDR"
+	"Resource/Fonts/ceurope.gdr=src/oss.FCL.sf.os.graphics/graphicstest/uibench/data/CEUROPE.GDR" $C_EXTRA
 echo "done: out/minigui.rom out/c_drive.img"

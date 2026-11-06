@@ -22,3 +22,4 @@ __pycache__/
 /rust/
 .DS_Store
 /emitter/rust_rom.args
+/emitter/rust_cdrive.args

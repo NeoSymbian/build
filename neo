@@ -1,0 +1,52 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+# neo -- one front end for building and running NeoSymbian. Everything runs in the pinned build image (images.sh);
+# the host needs Docker (and fastboot for `flash`).
+#
+#   neo fetch                    fetch the pinned 2010 sources into src/            (fetch.sh)
+#   neo rom                      build the 2010 user side + the Syborg ROM           (build.sh)
+#   neo boot                     boot that ROM on QEMU Syborg                        (boot.sh; RUN=, SECS=, SCREEN= ...)
+#   neo kernel [BOARD]           the AArch64 kernel image with the user side         (kernel: build-ekern.sh)
+#   neo nkernsa [BOARD]          the nanokernel test image                           (kernel: build-kernel.sh)
+#   neo qemu [SECS] [WHAT]       boot the qemu board's image on QEMU virt; WHAT = ekern (default) | kernel (nkernsa)
+#   neo flash [BOARD]            fastboot-boot the board's image (RAM only) and keep its console log (phone.py)
+#
+# BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito). KERNEL = the kernel checkout
+# (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
+# USERSIDE, AUTOFASTBOOT, EMMC_C, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE.
+set -eu
+HERE=$(cd "$(dirname "$0")" && pwd)
+. "$HERE/images.sh"
+VOLUME=${BUILD_VOLUME:-neosymbian-build}
+KERNEL=$(cd "${KERNEL:-$HERE/../kernel}" && pwd)
+cmd=${1:-help}; [ $# -gt 0 ] && shift
+
+kdocker() {	# kdocker <script> [args]: run a kernel tool in the image, the kernel tree at /kernel, the user side at /s2010
+	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"
+	env=""
+	for v in USERSIDE AUTOFASTBOOT EMMC_C NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
+		eval "val=\${$v:-}"; [ -n "$val" ] && env="$env -e $v=$val"
+	done
+	dtb=${DTB:-${BONITO_DTB:-}}; dmount=""
+	if [ -n "$dtb" ]; then dtb=$(cd "$(dirname "$dtb")" && pwd)/$(basename "$dtb"); dmount="-v $dtb:/dtb:ro"; env="$env -e DTB=/dtb"; fi
+	# shellcheck disable=SC2086
+	docker run --rm $user -e BOARD="$BOARD" $env $dmount -v "$KERNEL:/kernel" -v "$VOLUME:/s2010:ro" -w /kernel \
+		"$BUILD_IMAGE" sh "baseport/arm64/tools/$@"
+}
+
+case $cmd in
+fetch)   exec sh "$HERE/fetch.sh" ;;
+rom)     exec sh "$HERE/build.sh" ;;
+boot)    exec sh "$HERE/boot.sh" ;;
+kernel)  BOARD=${1:-qemu} kdocker build-ekern.sh ;;
+nkernsa) BOARD=${1:-qemu} kdocker build-kernel.sh ;;
+qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
+	t=""; [ -t 0 ] && t=-it	# interactive when run from a terminal (type into the serial console)
+	# shellcheck disable=SC2086
+	docker run --rm $t -e OUT="$OUT" -v "$KERNEL:/kernel" -w /kernel "$BUILD_IMAGE" \
+		sh baseport/arm64/tools/run-qemu.sh "${1:-60}" ;;
+flash)   BOARD=${1:-bonito}
+	exec python3 -I "$KERNEL/baseport/arm64/tools/phone.py" run "$KERNEL/out/ekern-$BOARD/boot.img" \
+		--log "$KERNEL/out/ekern-$BOARD/phone.log" --secs "${SECS:-30}" ${STAY:+--stay} ;;
+*)       sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'; [ "$cmd" = help ] ;;
+esac

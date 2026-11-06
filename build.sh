@@ -8,7 +8,8 @@
 # Results are copied back to out/.
 set -eu
 cd "$(dirname "$0")"
-IMAGE="${BUILD_IMAGE:-ghcr.io/neosymbian/toolchain@sha256:bac4fb83afdfad083138c48365974df9256b29901ea56798c78a4f955ce8d3b2}"	# docker/toolchain, pinned by digest
+. ./images.sh
+IMAGE=$BUILD_IMAGE
 [ -d src/oss.FCL.sf.os.kernelhwsrv ] || { echo "src/ is empty: run ./fetch.sh first" >&2; exit 1; }
 mkdir -p out
 exec docker run --rm -e FULL="${FULL:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \

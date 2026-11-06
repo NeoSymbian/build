@@ -12,8 +12,7 @@
 set -eu
 cd "$(dirname "$0")"
 [ -f out/minigui.rom ] || { echo "out/minigui.rom is missing: run ./build.sh first" >&2; exit 1; }
-QEMU_IMAGE="${QEMU_IMAGE:-ghcr.io/neosymbian/qemu-syborg@sha256:72a0ee417a1c908f87d33590d0ec12b99cf63d67df2dea875895a589012adbaa}"	# NeoSymbian/qemu-syborg
-BUILD_IMAGE="${BUILD_IMAGE:-ghcr.io/neosymbian/toolchain@sha256:bac4fb83afdfad083138c48365974df9256b29901ea56798c78a4f955ce8d3b2}"
+. ./images.sh
 RUN="${RUN:-dir}"; GAP="${GAP:-8}"
 case $RUN in *[!a-z0-9,]*|""|,*|*,|*,,*) echo "RUN: comma-separated words of a-z and 0-9" >&2; exit 2 ;; esac
 MONITOR="${MONITOR:-}"

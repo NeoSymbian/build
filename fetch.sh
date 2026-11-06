@@ -1,9 +1,9 @@
 #!/bin/sh
-# fetch.sh -- fetch every package of sources.lock at its pinned commit from the Phorepoc forks into src/<package>.
+# fetch.sh -- fetch every package of sources.lock at its pinned commit from the NeoSymbian forks (SOURCES_URL overrides) into src/<package>.
 # Shallow (one commit each); safe to re-run: a package already at its commit is skipped.
 set -eu
 cd "$(dirname "$0")"
-BASE="${SOURCES_URL:-https://github.com/Phorepoc}"
+BASE="${SOURCES_URL:-https://github.com/NeoSymbian}"
 mkdir -p src
 grep -v '^#' sources.lock | while IFS="$(printf '\t')" read -r pkg commit; do
 	[ -n "$pkg" ] || continue

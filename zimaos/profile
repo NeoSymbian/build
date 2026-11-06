@@ -1,0 +1,4 @@
+# ~/.profile for the symbian-desk terminal (HOME=/DATA/AppData/symbian-build/home)
+export PATH="/DATA/AppData/symbian-build/bin:$PATH"
+export DOCKER_CONFIG=/DATA/AppData/docker-config
+cd /DATA/AppData/symbian-build

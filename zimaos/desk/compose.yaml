@@ -1,0 +1,27 @@
+# Experiment (not in zimaos-homelab): build desktop for NeoSymbian, watched over VNC.
+# View from the Mac: ssh -N -L 5901:127.0.0.1:5901 zimaos   then   open vnc://localhost:5901
+services:
+  symbian-desk:
+    build: .
+    image: symbian-desk:local
+    container_name: symbian-desk
+    user: "999:1000"          # blackway:samba, so build files stay blackway's
+    group_add: ["104"]        # docker socket group: phe starts its toolchain containers
+    environment:
+      HOME: /DATA/AppData/symbian-build/home
+      DOCKER_CONFIG: /DATA/AppData/docker-config
+      PATH: /DATA/AppData/symbian-build/bin:/usr/local/bin:/usr/bin:/bin
+    ports:
+      - "127.0.0.1:5901:5900"   # VNC is plain text: loopback only, reached through an SSH tunnel
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # same path inside and out, so bind mounts phe passes to sibling containers resolve on the host
+      - /DATA/AppData/symbian-build:/DATA/AppData/symbian-build
+      - /DATA/AppData/docker-config:/DATA/AppData/docker-config
+      - ./secrets:/secrets:ro
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "x11vnc"]
+      interval: 30s
+    restart: unless-stopped
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "3"}}

@@ -12,4 +12,4 @@ IMAGE="${BUILD_IMAGE:-ghcr.io/phorepoc/base:latest}"
 [ -d src/oss.FCL.sf.os.kernelhwsrv ] || { echo "src/ is empty: run ./fetch.sh first" >&2; exit 1; }
 mkdir -p out
 exec docker run --rm -e FULL="${FULL:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
-	-v "$PWD:/work" -v phorepoc-symbian-2010:/build -w /work "$IMAGE" bash scripts/build-in-container.sh
+	-v "$PWD:/work" -v "${BUILD_VOLUME:-phorepoc-symbian-2010}:/build" -w /work "$IMAGE" bash scripts/build-in-container.sh

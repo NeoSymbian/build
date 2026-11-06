@@ -74,6 +74,9 @@ COMPONENTS = {
     "domaincli": dict(mmp="oss.FCL.sf.os.kernelhwsrv/userlibandfileserver/domainmgr/group/domaincli.mmp"),
     "domainsrv": dict(mmp="oss.FCL.sf.os.kernelhwsrv/userlibandfileserver/domainmgr/group/domainsrv.mmp"),
     "econswserv": dict(mmp=f"{G}/windowing/windowserver/minigui/group/econswserv.mmp"),
+    # NeoSymbian: the stock text console (a client of !E32WindowServer), ECONS.DLL in the UI ROM (kernel/rom_args.py)
+    # where the Rust UI replaces the window server and its Terminal app serves !E32WindowServer
+    "econs": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kernel/eka/ewsrv/econs.mmp", rom="econs_twin.dll"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL) ---
     "elocl_language_en_gb": dict(
         mmp="oss.FCL.sf.mw.uiresources/locales/loce32/language/group/elocl_language_en_gb.mmp", rom="elocl_lan.001"),

@@ -50,7 +50,8 @@ EXPORTS="${EXPORTS#:}"
 # The userland: the file server (EFILE is the ROM's secondary process) and the libraries it needs, ESTART with its
 # drive map (syborg's: D: = IRAM, C: = NVMemory), the FAT file system plug-in, the keymap, the shell, the 3-DLL locale,
 # then every built registry component (graphical window server in the EWSRV.EXE slot, econswserv.dll in the ECONS.DLL
-# slot, fbserv, the gdi/bitgdi/fntstore stack ...) and its resources.
+# slot -- the stock text console econs_twin.dll instead in a UI ROM with SYSSTART.EXE, see rom_args.py -- fbserv, the
+# gdi/bitgdi/fntstore stack ...) and its resources.
 ARGS=.ekern-build/rombuild.args
 {
   printf '%s\n' \

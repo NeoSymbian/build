@@ -4,8 +4,9 @@ Prints one argument per line (`--xip` / spec / `--data` / spec ...) for kernel/b
 emitter/components.py entry whose image exists in emitter/, plus the files its build staged for the ROM:
   <image>.romfiles   compiled resources (build_mmp.build_resources)
   <stem>.rsc         ECOM registration next to a plug-in DLL -> \\Resource\\Plugins
-Minigui slot renames: wserv.exe -> EWSRV.EXE (estart launches it), econswserv.dll -> ECONS.DLL (ESHELL's console
-loads it).
+Minigui slot renames: wserv.exe -> EWSRV.EXE (estart launches it), and ECONS.DLL (what Console::NewL loads, e.g. for
+ESHELL) = econswserv.dll, a window-server console -- or, in the UI ROM (emitter/rust_rom.args lists SYSSTART.EXE, which
+estart runs instead of the window server), econs_twin.dll: the stock text console, served by neoui's Terminal app.
 """
 import os
 import sys
@@ -16,7 +17,9 @@ sys.path.insert(0, os.path.join(REPO, "emitter"))
 import components as C  # noqa: E402
 import mmp as MMP  # noqa: E402
 
-SLOT = {"wserv.exe": "EWSRV.EXE", "econswserv.dll": "ECONS.DLL"}
+RUST_ARGS = os.path.join(REPO, "emitter", "rust_rom.args")
+UI_ROM = os.path.isfile(RUST_ARGS) and "SYSSTART.EXE" in open(RUST_ARGS).read()
+SLOT = {"wserv.exe": "EWSRV.EXE", ("econs_twin.dll" if UI_ROM else "econswserv.dll"): "ECONS.DLL"}
 
 
 def main() -> None:

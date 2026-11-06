@@ -1,18 +1,22 @@
-# symbian-2010
+# NeoSymbian build
 
-This is the 2010 Symbian open-source release, built from its own source with a modern compiler and booted in the
-Symbian QEMU. Nothing in the Symbian source is edited. It runs the release's own kernel, file server and window server,
-in the stripped-down **minigui** setup Symbian used to bring up new hardware.
+The build system of [NeoSymbian](https://github.com/NeoSymbian): one command, `neo`, builds and runs everything in one
+pinned image.
+
+| | |
+|---|---|
+| `neo fetch`, `neo rom`, `neo boot` | The 2010 Symbian user side, with the Rust programs and UI from [e32-rs](https://github.com/NeoSymbian/e32-rs) and [neoui](https://github.com/NeoSymbian/neoui), as a ROM booted on QEMU Syborg |
+| `neo live [SECS]`, `neo live stop` | The same ROM running in the background, watched live (`tools/live/`) |
+| `neo kernel BOARD`, `neo nkernsa BOARD`, `neo qemu`, `neo flash BOARD` | The AArch64 kernel from [kernel](https://github.com/NeoSymbian/kernel) (checked out beside this repo) for a board (`qemu`, `bonito`), on QEMU virt or the phone |
+| `images.sh` | The build image (`docker/toolchain`, `ghcr.io/neosymbian/toolchain`) and the emulator (`ghcr.io/neosymbian/qemu-syborg`), pinned by digest |
+| `zimaos/` | The home-server build desktop |
+
+This repository started as Phorepoc's `symbian-2010`: the 2010 Symbian open-source release, built from its own source
+with a modern compiler and booted in the Symbian QEMU, with nothing in the Symbian source edited. It runs the release's
+own kernel, file server and window server, in the stripped-down **minigui** setup Symbian used to bring up new
+hardware. NeoSymbian adds the Rust EXEs and the Rust UI on top (`rust/`, `emitter/build_rust_exe.py`).
 
 ![The Symbian text shell running in minigui on QEMU Syborg](docs/minigui-eshell.png)
-
-That's all you get, though: a text shell in a window, with a working keyboard and a C: drive. There's no S60 home
-screen, no apps and no touch interface. The display is the emulator's plain 768x640 framebuffer, and booting to the
-prompt takes 30 to 50 seconds, because QEMU 0.9.1 has no CPU acceleration.
-
-If you want the full Symbian^3 interface on modern hardware, that's what [Phorepoc](https://github.com/Phorepoc) is
-for. This repository is deliberately frozen. Its job is to keep the original release running as close as possible to
-how it shipped.
 
 ## Quick start
 

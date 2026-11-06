@@ -15,6 +15,7 @@ grep -v '^#' sources.lock | while IFS="$(printf '\t')" read -r pkg commit; do
 	echo "fetch $pkg @ ${commit%"${commit#????????}"}"
 	mkdir -p "$d"
 	[ -d "$d/.git" ] || git -C "$d" init -q
-	git -C "$d" fetch -q --depth 1 "$BASE/$pkg.git" "$commit"
+	repo=$pkg; [ "$pkg" = oss.FCL.sf.os.kernelhwsrv ] && repo=kernel	# the kernelhwsrv fork is NeoSymbian/kernel
+	git -C "$d" fetch -q --depth 1 "$BASE/$repo.git" "$commit"
 	git -C "$d" checkout -q --force FETCH_HEAD
 done

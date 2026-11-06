@@ -150,10 +150,19 @@ extern "C" int __wrap__ZN8DProcess6CreateEiR18TProcessCreateInfoP5HBuf8(void* a,
 	return __real__ZN8DProcess6CreateEiR18TProcessCreateInfoP5HBuf8(a, b, c, d);
 	}
 
-// DThread::Die: a panicking thread, with its category and reason.
+// DThread::Die: a panicking thread, with its category and reason; and (NeoSymbian) a thread killed with a non-zero
+// reason, i.e. a program's exit code -- normal exits (reason 0) stay quiet.
 extern "C" void __real__ZN7DThread3DieE9TExitTypeiRK6TDesC8(void*, int, int, void*);
 extern "C" void __wrap__ZN7DThread3DieE9TExitTypeiRK6TDesC8(void* a, int b, int c, void* d)
 	{
+	if (b == EExitKill && c != 0 && a)
+		{
+		TBuf8<96> fn;
+		((DThread*)a)->FullName(fn);
+		fn.Append('\0');
+		ekseam_puts("[EKERN] exit '"); ekseam_puts((const char*)fn.Ptr()); ekseam_puts("'");
+		ekseam_puts(" reason="); ekseam_puthex((unsigned)c);
+		}
 	if (b == EExitPanic && a)
 		{
 		TBuf8<96> fn;

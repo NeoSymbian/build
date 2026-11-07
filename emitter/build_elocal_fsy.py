@@ -1,10 +1,12 @@
-"""build_elocal_fsy -- the from-source ELOCAL.FSY (FAT16 file system plugin).
+"""build_elocal_fsy -- the from-source ELOCAL.FSY (FAT12/16/32 file system plugin).
 
 The syborg estart.txt maps C: (nvmem) and D: (iram) as `ELOCAL  FAT`, so after
 StartupInitComplete estart asks the file server to AddFileSystem("ELOCAL"):
 EFILE loads ELOCAL.FSY through the loader, Lookup(1) -> CreateFileSystem().
-This builds that plugin from the unmodified 2010 sfat sources (the elocal.mmp
-TU set -- FAT16; the sfat32 flavour can follow the same recipe as efat32.fsy).
+This builds that plugin from the unmodified 2010 sfat32 sources (the efat32.mmp
+TU set, incl. fs_utils): FAT32 for drives above 2 GB, long names (VFAT), rugged
+FAT, ScanDrive. The older sfat (elocal.mmp, FAT12/16 only) can't format a volume
+above ~2 GB. efat32.mmp keeps elocal's UID3, so it ships under the name ELOCAL.
 
 A .FSY is a plain DLL whose ONE export (ordinal 1) is
 `EXPORT_C CFileSystem* CreateFileSystem()`; there is no .def file. It links
@@ -39,21 +41,23 @@ STUB_NAME = BE.STUB_NAME
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
 FS = os.path.join(SRC, "userlibandfileserver", "fileserver")
-SFAT = os.path.join(FS, "sfat")
+SFAT = os.path.join(FS, "sfat32")
+FS_UTILS = os.path.join(FS, "fs_utils")
 
 UID2_FSY = 0x100039DF
 UID3 = 0x100000D6
 
-# The elocal.mmp (ARM branch) TU set, verbatim.
+# The efat32.mmp TU set, verbatim.
 SOURCES = [os.path.join(SFAT, f + ".cpp") for f in
-           ("fat_config", "sl_cache", "sl_dir",
+           ("fat_config", "sl_dir",
             "sl_disk", "sl_drv", "sl_file",
             "sl_fmt", "sl_fsy", "sl_main", "sl_mnt",
-            "sl_utl", "sl_vfat", "sl_bpb",
-            "sl_scan", "sl_check",
-            "sl_fat16", "sl_mnt16", "sl_fatcache", "fat_table", "ram_fat_table",
-            "sl_leafdir_cache",
-            "sl_dir_cache")]
+            "sl_utl", "sl_vfat", "sl_cache", "sl_fatcache",
+            "sl_leafdir_cache", "sl_dir_cache",
+            "sl_fatmisc32", "sl_bpb32", "fat_table32", "ram_fat_table32",
+            "sl_scan32", "sl_mnt32",
+            "sl_fatcache32")] + \
+          [os.path.join(FS_UTILS, f + ".cpp") for f in ("filesystem_utils", "bit_vector")]
 # Same statically-linked C++ runtime as the efsrv/efile builds.
 RUNTIME_SOURCES = [
     os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv", "kernel", "eka",
@@ -67,7 +71,8 @@ EXTRA = [
     "-iquote", os.path.join(SFAT), "-iquote", os.path.join(SFAT, "inc"),
     "-iquote", os.path.join(FS, "sfile"), "-iquote", os.path.join(FS, "inc"),
     f"-I{SFAT}", f"-I{os.path.join(SFAT, 'inc')}",
-    f"-I{os.path.join(FS, 'sfile')}", f"-I{os.path.join(FS, 'inc')}",
+    "-iquote", FS_UTILS,
+    f"-I{os.path.join(FS, 'sfile')}", f"-I{os.path.join(FS, 'inc')}", f"-I{FS_UTILS}",
     f"-I{os.path.join(FS, 'ftrace')}",
     f"-I{os.path.join(SRC, 'kernel', 'eka', 'include')}",
     f"-I{os.path.join(SRC, 'halservices', 'hal', 'inc')}",
@@ -150,7 +155,7 @@ def main() -> int:
 
     import_list = devlink.import_blocks(ext, imports)
     n_imp = sum(len(e) for _, e in import_list)
-    print("DEVICE elocal.fsy (FAT16 file system plugin, from source)")
+    print("DEVICE elocal.fsy (FAT32 file system plugin, sfat32, from source)")
     print(f"code: {len(ext.code)} B @0x{ext.code_base:X}   "
           f"data: {len(ext.data)} B   bss: {ext.bss_size} B")
     print(f"exports: 1 (CreateFileSystem); {n_imp} imports "

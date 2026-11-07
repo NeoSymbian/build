@@ -316,8 +316,11 @@ def build_dll(code: bytes, exports: list[int], *,
         ordinal-1 indexed (`exports[i]` is the code-section byte offset of ordinal i+1).
       * `entry_point` is the E32Dll entry offset.
 
-    Layout: [124 header][usize u32][V-section 28][code (4-aligned)]
-            [import section: one u32 == 0][code relocs?][export table N*u32].
+    Layout: [124 header][usize u32][V-section 28][code (4-aligned)][export table N*u32]
+            [import section][data?][code relocs?][data relocs?].
+    The export table is the tail of the code section (iCodeSize/iTextSize include it), as elf2e32 lays it out:
+    the loader's header check (f32image.h ValidateHeader) refuses an export table outside the code section, so a
+    DLL loaded from a drive (ROFS, C:) needs it there; the ROM builder reads it through iExportDirOffset either way.
 
     With `exe=True` this becomes the EXE-with-imports/exports variant (TARGETTYPE exexp): uid1 = UID1_EXE, no
     FLAG_DLL, and the process fields (`stack_size`/`heap_min`/`heap_max`/`priority`, from the .mmp) apply.
@@ -353,6 +356,11 @@ def build_dll(code: bytes, exports: list[int], *,
             for (off, ordn, adj) in entries:
                 struct.pack_into("<I", code, off, (ordn & 0xFFFF) | ((adj & 0xFFFF) << 16))
     code_padded = bytes(code) + b"\x00" * (_align4(len(code)) - len(code))
+    # Export entries are ABSOLUTE linked code addresses (code_base + offset), as petran/elftran emits them.
+    abs_exports = [code_base + off for off in exports]
+    export_table = struct.pack(f"<{len(abs_exports)}I", *abs_exports) if exports else b""
+    export_dir_offset = code_offset + len(code_padded)
+    code_padded += export_table           # the code section's tail (see Layout)
 
     import_offset = code_offset + len(code_padded)
     if imports:
@@ -391,11 +399,6 @@ def build_dll(code: bytes, exports: list[int], *,
             data_reloc_types if data_reloc_types else data_relocs, RELOC_TEXT)
         cursor += len(data_reloc_section)
 
-    export_dir_offset = cursor
-    # Export entries are ABSOLUTE linked code addresses (code_base + offset), as petran/elftran emits them.
-    abs_exports = [code_base + off for off in exports]
-    export_table = struct.pack(f"<{len(abs_exports)}I", *abs_exports) if exports else b""
-
     hdr.code_base = code_base
     hdr.code_offset = code_offset
     hdr.code_size = len(code_padded)
@@ -423,7 +426,6 @@ def build_dll(code: bytes, exports: list[int], *,
     body += data_padded
     body += code_reloc_section
     body += data_reloc_section
-    body += export_table
 
     struct.pack_into("<I", body, 124, len(body))
     set_header_crc(body)

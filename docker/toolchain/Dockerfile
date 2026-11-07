@@ -4,13 +4,20 @@
 #    Python with PIL and the DejaVu fonts (the phone console's font)
 #  - the 2010 ARMv5TE user side (this repo's build.sh): the Arm GNU Toolchain 14.2.rel1 (arm-none-eabi, checksum-
 #    verified; its binutils also assemble the kernel's AArch32 test program), host gcc/cpp, perl, python3, and the
-#    Symbian host tools rcomp and uidcrc, built from source in the first stage
+#    Symbian host tools rcomp, uidcrc, rofsbuild and readimage, built from source in the first stage
 # Build context = this folder:  docker build -t neosymbian-toolchain docker/toolchain
 # Published by .github/workflows/toolchain.yml as ghcr.io/neosymbian/toolchain; build.sh pins it by digest.
 
 FROM debian:trixie-slim AS hosttools
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ g++-multilib \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git g++ g++-multilib curl bzip2 \
     && rm -rf /var/lib/apt/lists/*
+# boost 1.39 sources for rofsbuild/readimage (hosttools/build.sh): the release tarball, checksum-verified
+ARG BOOST_SHA256=44785eae8c6cce61a29a8a51f9b737e57b34d66baa7c0bcd4af188832b8018fd
+RUN curl -fsSL -o /tmp/boost.tar.bz2 https://archives.boost.io/release/1.39.0/source/boost_1_39_0.tar.bz2 \
+    && echo "${BOOST_SHA256}  /tmp/boost.tar.bz2" | sha256sum -c - \
+    && mkdir -p /src && tar -xjf /tmp/boost.tar.bz2 -C /src boost_1_39_0/boost boost_1_39_0/libs/filesystem/src \
+        boost_1_39_0/libs/system/src boost_1_39_0/libs/regex/src boost_1_39_0/libs/thread/src \
+    && rm /tmp/boost.tar.bz2
 COPY hosttools/ /hosttools/
 RUN set -eu; grep -v '^#' /hosttools/sources.lock | while IFS="$(printf '\t')" read -r pkg commit; do \
         git init -q "/src/$pkg"; \

@@ -19,7 +19,10 @@ carries its export table in the XIP header).
 UIDs: uid1 DLL, uid2 0x100039DF (file system plugin -- the loader REQ-UID
 checks it), uid3 0x100000D6 (elocal.mmp `UID 0 0x100000d6`).
 
-Run from repo root:  python3 emitter/build_elocal_fsy.py [out.fsy]
+The ROFS and composite file systems behind a composite Z: (erofs.mmp, ecomp.mmp; docs/filesystem.md FS4) are the
+same kind of plugin with the same UID3, so `--fs erofs|ecomp` builds them by this recipe from their own sources.
+
+Run from repo root:  python3 emitter/build_elocal_fsy.py [out.fsy] [--fs elocal|erofs|ecomp]
 """
 from __future__ import annotations
 
@@ -58,6 +61,12 @@ SOURCES = [os.path.join(SFAT, f + ".cpp") for f in
             "sl_scan32", "sl_mnt32",
             "sl_fatcache32")] + \
           [os.path.join(FS_UTILS, f + ".cpp") for f in ("filesystem_utils", "bit_vector")]
+# --fs: the plugin's source folder (searched first) and TU set
+PLUGINS = {
+    "elocal": (SFAT, SOURCES),
+    "erofs": (os.path.join(FS, "srofs"), [os.path.join(FS, "srofs", f + ".cpp") for f in ("sr_rofs", "dircache")]),
+    "ecomp": (os.path.join(FS, "scomp"), [os.path.join(FS, "scomp", "sc_comp.cpp")]),
+}
 # Same statically-linked C++ runtime as the efsrv/efile builds.
 RUNTIME_SOURCES = [
     os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv", "kernel", "eka",
@@ -81,13 +90,14 @@ EXTRA = [
 CREATE_FS = "CreateFileSystem"   # unmangled: extern "C"-linkage in sl_main.cpp
 
 
-def compile_objs(workdir: str) -> list[str]:
+def compile_objs(workdir: str, fs: str = "elocal") -> list[str]:
     env = dict(os.environ, SYMCC_ARM="1")
     objs = []
-    for src in SOURCES:
-        obj = os.path.join(workdir, "elocal_" + os.path.basename(src) + ".o")
+    folder, sources = PLUGINS[fs]
+    for src in sources:
+        obj = os.path.join(workdir, fs + "_" + os.path.basename(src) + ".o")
         subprocess.run(["bash", SYMCC, src, "-O2", "-fkeep-inline-functions",
-                        *EXTRA, "-o", obj],
+                        "-iquote", folder, f"-I{folder}", *EXTRA, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     for src in RUNTIME_SOURCES:
@@ -99,10 +109,18 @@ def compile_objs(workdir: str) -> list[str]:
 
 
 def main() -> int:
-    out_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "elocal.fsy")
-    workdir = BE.workdir("elocal")
+    args = sys.argv[1:]
+    fs = "elocal"
+    if "--fs" in args:
+        i = args.index("--fs")
+        fs = args[i + 1]
+        del args[i:i + 2]
+    if fs not in PLUGINS:
+        sys.exit(f"--fs {fs}: one of {', '.join(PLUGINS)}")
+    out_path = args[0] if args else os.path.join(HERE, fs + ".fsy")
+    workdir = BE.workdir(fs)            # own folder: the objects and ELFs below keep their elocal* names
 
-    objs = compile_objs(workdir)
+    objs = compile_objs(workdir, fs)
 
     unimpl = os.path.join(BE.ED, "unimpl_export.cpp")
     unimpl_o = os.path.join(workdir, "elocal_unimpl.o")
@@ -114,7 +132,7 @@ def main() -> int:
     elf1 = os.path.join(workdir, "elocal0.pass1.elf")
     BE._link(objs, roots, elf1, workdir, ignore_unresolved=True)
     missing = sorted(BE._nm("--undefined-only", elf1) - {""})
-    imports, stub_names = devlink.split_missing(missing, own_dll="elocal.fsy",
+    imports, stub_names = devlink.split_missing(missing, own_dll=fs + ".fsy",
                                                 include_efile=True)
     veneer_o = devlink.make_veneers(workdir, imports, "elocal")
 
@@ -148,14 +166,14 @@ def main() -> int:
     if ext.data or ext.bss_size:
         # A Symbian DLL may not carry writable static data; the XIP prelinker
         # gives DLLs no data run. Fail loudly rather than ship silent garbage.
-        sys.exit(f"elocal.fsy has data ({len(ext.data)} B) / bss ({ext.bss_size} B)"
+        sys.exit(f"{fs}.fsy has data ({len(ext.data)} B) / bss ({ext.bss_size} B)"
                  " -- writable static data in a DLL, investigate")
 
     export_offsets = [ext.symbols[CREATE_FS] - ext.code_base]  # ordinal 1
 
     import_list = devlink.import_blocks(ext, imports)
     n_imp = sum(len(e) for _, e in import_list)
-    print("DEVICE elocal.fsy (FAT32 file system plugin, sfat32, from source)")
+    print(f"DEVICE {fs}.fsy (file system plugin {os.path.basename(PLUGINS[fs][0])}, from source)")
     print(f"code: {len(ext.code)} B @0x{ext.code_base:X}   "
           f"data: {len(ext.data)} B   bss: {ext.bss_size} B")
     print(f"exports: 1 (CreateFileSystem); {n_imp} imports "

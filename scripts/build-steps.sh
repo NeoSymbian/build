@@ -34,6 +34,9 @@ step resources python3 emitter/build_mmp.py --rsc $KEYS
 step components python3 emitter/build_mmp.py $KEYS
 step estart python3 emitter/build_estart_exe.py
 step elocal-fsy python3 emitter/build_elocal_fsy.py
+# the ROFS and composite file systems: a composite Z: (the AArch64 kernel's core ROM + ROFS image, docs/filesystem.md FS4)
+step erofs-fsy python3 emitter/build_elocal_fsy.py emitter/erofs.fsy --fs erofs
+step ecomp-fsy python3 emitter/build_elocal_fsy.py emitter/ecomp.fsy --fs ecomp
 step ekdata python3 emitter/build_ekdata_dll.py
 step eshell python3 emitter/build_eshell_exe.py
 # NeoSymbian: the Rust EXEs (NeoSymbian/e32-rs) listed in rust/exes.txt go into the ROM (Z:\sys\bin, through

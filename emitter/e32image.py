@@ -382,13 +382,17 @@ def build_dll(code: bytes, exports: list[int], *,
 
     code_reloc_offset = 0
     code_reloc_section = b""
-    if code_relocs:
+    # A code word may point into DATA/.bss (e.g. a global's absolute address);
+    # such a reloc needs the DATA delta, not TEXT. Honor per-offset types when
+    # provided (from elf.extract's classify-by-target-section).
+    types = dict(code_reloc_types) if code_reloc_types else {o: RELOC_TEXT for o in (code_relocs or [])}
+    # The export table's entries are relocations too, as elf2e32 marks them: a loader moving an ELF-format image
+    # (sf_lepoc.cpp RelocateExports) relies on it. By value, since an exported static lives in the data.
+    for i in range(len(exports)):
+        types[export_dir_offset - code_offset + 4 * i] = RELOC_INFERRED
+    if types:
         code_reloc_offset = cursor
-        # A code word may point into DATA/.bss (e.g. a global's absolute address);
-        # such a reloc needs the DATA delta, not TEXT. Honor per-offset types when
-        # provided (from elf.extract's classify-by-target-section).
-        code_reloc_section = build_reloc_section(
-            code_reloc_types if code_reloc_types else code_relocs, RELOC_TEXT)
+        code_reloc_section = build_reloc_section(types)
         cursor += len(code_reloc_section)
 
     data_reloc_offset = 0

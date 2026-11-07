@@ -29,6 +29,8 @@ jobs:
             arm-none-eabi-gcc --version | head -1
             aarch64-linux-gnu-g++-14 --version | head -1
             rcomp 2>&1 | grep -q "Resource compiler"
+            rofsbuild 2>&1 | grep -q "ROFSBUILD"
+            readimage 2>&1 | grep -q "Readimage"
             uidcrc 0x10000079 0x100039ce 0x10005b8b /tmp/u && [ "$(wc -c < /tmp/u)" = 16 ]
             qemu-system-aarch64 --version | head -1
             python3 -c "import PIL"'

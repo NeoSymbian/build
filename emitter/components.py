@@ -28,6 +28,8 @@ TXT = "oss.FCL.sf.os.textandloc"
 CUI = "oss.FCL.sf.mw.classicui"
 APF = "oss.FCL.sf.mw.appsupport/appfw"
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# FindUtil.h is only in classicui master (BRANCH_RCL_3 dropped findutil_api): that one directory, not master's headers
+FINDUTIL_INC = ["-I", os.path.join(REPO, "src", "oss.FCL.sf.mw.classicui@master", "classicui_plat", "findutil_api", "inc")]
 
 BUILTIN = {
     "euser": ("euser.dll", __import__("build_euser_dll").DEF_PATH),
@@ -115,17 +117,22 @@ COMPONENTS = {
     "viewsrv": dict(mmp=f"{APF}/viewserver/group/VIEWSRV.MMP"),
     "egul": dict(mmp=f"{CUI}/lafagnosticuifoundation/uigraphicsutils/group/EGUL.MMP"),
     "cone": dict(mmp=f"{CUI}/lafagnosticuifoundation/cone/group/CONE.MMP"),
-    "fepbase": dict(mmp="oss.FCL.sf.mw.inputmethods/fep/frontendprocessor/group/FEPBASE.MMP"),
+    # with the FEP framework's Central Repository settings (CCoeEnv's FEP tracker opens 10272618 at start-up)
+    "fepbase": dict(mmp="oss.FCL.sf.mw.inputmethods/fep/frontendprocessor/group/FEPBASE.MMP", rom_data=[
+        f"private\\10202be9\\{uid}.txt=src/oss.FCL.sf.mw.inputmethods/fep/frontendprocessor/group/{uid}.txt"
+        for uid in ("10272618", "10272619", "10009793")]),
     # the error-resolver texts (errorres.rsg is included by eikcore and commonengine); also at the path S60's CTextResolver opens
     "errorres": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/commonengineresources/group/commonengineresources.mmp",
                      rsc_only=True, rom_data=[r"resource\errors\errorres.rsc=emitter/rsc/resource/errorres.rsc"]),
     # --- Uikon + Avkon (S60 classicui) and their support libraries: the legacy GUI apps' base (map: Phorepoc's registry) ---
     "commonengine": dict(mmp=f"{OSSRV}/genericservices/s60compatibilityheaders/commonengine/group/commonengine.mmp"),
     "featmgr": dict(mmp=f"{PDATA}/featuremgmt/featuremgr/group/featmgr.mmp"),
-    "featmgrserver": dict(mmp=f"{PDATA}/featuremgmt/featuremgr/group/featmgrserver.mmp"),
+    "featmgrserver": dict(mmp=f"{PDATA}/featuremgmt/featuremgr/group/featmgrserver.mmp", rom_data=[r"private\10205054\features.dat=emitter/features.dat"]),
     "cenrepnotifhandler": dict(mmp=f"{PDATA}/persistentstorage/centralrepository/cenrepnotifierhandler/group/cenrepnotifhandler.mmp"),
     "platformenv": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/PlatformEnv/group/PlatformEnv.mmp", **{"def": "oss.FCL.sf.os.devicesrv/commonservices/PlatformEnv/EABI/PlatformEnvCenRepU.DEF"}),
     "sysversioninfo": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/PlatformEnv/sysversioninfo/group/sysversioninfo.mmp"),
+    "platformver": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/PlatformEnv/platformver/group/platformver.mmp"),
+    "disknotifyhandler": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/PlatformEnv/disknotifyhandler/group/disknotifyhandler.mmp"),
     "syslangutil": dict(mmp="oss.FCL.sf.os.devicesrv/sysstatemgmt/syslangutil/group/syslangutil.mmp"),
     "jplangutil": dict(mmp=f"{TXT}/textandlocutils/jplangutil/group/jplangutil.mmp"),
     "numbergrouping": dict(mmp=f"{TXT}/textandlocutils/numbergrouping/group/NumberGrouping.mmp"),
@@ -142,11 +149,11 @@ COMPONENTS = {
     "eikalert": dict(mmp=f"{CUI}/uifw/EikStd/alertsrc/Eikalert.mmp"),
     "uiklaf": dict(mmp=f"{CUI}/uifw/uiklaf/Group/UIKLAF.MMP", **{"def": f"{CUI}/commonuisupport/uilaf/eabi/uiklaf_unbranchedu.def"}),
     "eikcoctllaf": dict(mmp=f"{CUI}/uifw/uiklaf/Group/EikCoCtlLaf.MMP"),
-    "eikcoctl": dict(mmp=f"{CUI}/uifw/EikStd/coctlsrc/EIKCOCTL.MMP", flags=["-fkeep-inline-functions"]),
+    "eikcoctl": dict(mmp=f"{CUI}/uifw/EikStd/coctlsrc/EIKCOCTL.MMP", flags=["-fkeep-inline-functions"], rtti=True),
     "eikctl": dict(mmp=f"{CUI}/uifw/eikctl/group/eikctl.mmp"),
     "eikdlg": dict(mmp=f"{CUI}/uifw/EikStd/dlgsrc/EIKDLG.MMP"),
     "eikcdlg": dict(mmp=f"{CUI}/uifw/EikStd/cdlgsrc/EIKCDLG.MMP"),
-    "avkon": dict(mmp=f"{CUI}/uifw/AvKon/group/avkon.mmp", rtti=True),
+    "avkon": dict(mmp=f"{CUI}/uifw/AvKon/group/avkon.mmp", rtti=True, flags=FINDUTIL_INC, rom_data=[f"private\\10202be9\\101F876E.txt=src/{CUI}/uifw/AvKon/CenRep/101F876E.txt"]),
     "aknnotify": dict(mmp=f"{CUI}/uifw/AvKon/notifsrc/aknNotify.mmp"),
     "akncapserverclient": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServerClient.mmp"),
     "akncapserver": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServer.mmp", rtti=True),
@@ -156,22 +163,34 @@ COMPONENTS = {
     "gfxtrans": dict(mmp=f"{CUI}/lafagnosticuifoundation/graphicseffects/group/GfxTransEffect.mmp"),
     "servicehandler": dict(mmp=f"{CUI}/applicationinterworkingfw/ServiceHandler/group/ServiceHandler.mmp"),
     "hlplch": dict(mmp=f"{CUI}/uiutils/hlplch/group/hlplch.mmp"),
-    "findutil": dict(mmp=f"{CUI}/uiutils/Findutil/group/FindUtil.mmp"),
+    "findutil": dict(mmp=f"{CUI}/uiutils/Findutil/group/FindUtil.mmp", flags=FINDUTIL_INC),
     "cdlengine": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/cdl/CdlEngine/group/CdlEngine.mmp"),
     "cdlserver": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/cdl/CdlServer/group/CdlServer.mmp"),
     "aknlayout2": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/aknlayout2/group/AknLayout2.mmp"),
     "aknlayout2scalable": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/aknlayout2/group/AknLayout2Scalable.mmp"),
     "layoutinst": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/aknlayout2/group/../generated/layoutinst.mmp", rom="101fe2aa.dll"),
+    # one resolution's layout data: nHD (360x640 / 640x360) -- boot with SCREEN=360x640
+    "layoutinst_nhd4": dict(mmp="oss.FCL.sf.mw.uiresources/layouts/aknlayout2/generated/Nhd4_akn_app/layoutinst_nhd4.mmp",
+                            rom="2001cb93.dll"),
     "aknskins": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkins.mmp"),
-    "aknskinsrv": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrv.mmp"),
+    "aknskinsrv": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrv.mmp", defs=["AKNS_TRACING_ENABLED_ERROR"], rom_data=[   # Personalisation (skins), Themes (from its .crml)
+        "private\\10202be9\\101F876F.txt=src/oss.FCL.sf.mw.uiresources/skins/AknSkins/CenRep/101F876F.txt",
+        "private\\10202be9\\102818E8.txt=emitter/cenrep/102818E8.txt"]),
+    "aknskinsrvexe": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrvMain.mmp", rom="aknskinsrv.exe"),
     "aknskinrenderlib": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinRenderLib.mmp", flags=["-U__MARM_ARMV5__"]),
-    "aknicon": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIcon.mmp"),
+    "aknicon": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIcon.mmp", rtti=True),
     "akniconsrv": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIconSrvMain.mmp"),
     "fontprovider": dict(mmp="oss.FCL.sf.mw.uiresources/fontsupport/fontprovider/Group/FontProvider.mmp"),
     "fontutils": dict(mmp="oss.FCL.sf.mw.uiresources/fontsupport/fontutils/FontUtils/group/FontUtils.mmp"),
     "aknpictograph": dict(mmp="oss.FCL.sf.mw.uiresources/pictographs/AknPictograph/group/AknPictograph.mmp"),
     "ptiengine": dict(mmp="oss.FCL.sf.mw.inputmethods/textinput/ptienginev2/group/ptienginev2.mmp"),
     "touchfeedback": dict(mmp="oss.FCL.sf.mw.hapticsservices/tactilefeedback/tactilefeedbackclient/group/touchfeedback.mmp"),
+    "aknnotifyplugin2": dict(mmp=f"{CUI}/uifw/AknGlobalUI/group/AknNotifyPlugin2.mmp"),
+    "aknnotifyplugin": dict(mmp=f"{CUI}/uifw/AvKon/AknNotifyPlugin_dll/group/AknNotifyPlugin.mmp"),   # eiksrvui's first call
+    "aknnotifierwrapper": dict(mmp=f"{CUI}/uifw/AknGlobalUI/NotifierWrapper/group/aknnotifierwrapper.mmp"),
+    "findutilimpl": dict(mmp=f"{CUI}/uiutils/Findutil/group/FindUtilImpl.mmp", flags=FINDUTIL_INC),
+    # the FEP's resources only (avkon's character map includes aknfep.rsg); the FEP itself is not built
+    "aknfep": dict(mmp="oss.FCL.sf.mw.inputmethods/fep/aknfep/group/AknFep.mmp", rsc_only=True),
     # --- the legacy GUI apps ---
     "perfmon": dict(mmp="oss.FCL.sf.app.rndtools/perfmon/group/perfmon.mmp"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL): from uiresources master (BRANCH_RCL_3 has no loce32) ---

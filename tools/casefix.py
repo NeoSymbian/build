@@ -19,12 +19,20 @@ SCAN_EXT = HEADER_EXT | {".cpp", ".c", ".cia", ".rss", ".mmp", ".cc", ".s"}
 INCLUDE = re.compile(rb'^\s*#\s*include\s*[<"]([^>"\r\n]+)[>"]', re.M)
 
 
+def includes_itself(path: str, spelling: str) -> bool:
+    try:
+        data = open(path, "rb").read()
+    except OSError:
+        return False
+    return any(m.group(1).decode("latin-1").strip().lower() == spelling.lower() for m in INCLUDE.finditer(data))
+
+
 def main() -> None:
     by_base, by_tail = {}, {}
     scan = []
     for top in ROOTS:
         for root, dirs, files in os.walk(top):
-            dirs[:] = [d for d in dirs if d != ".git"]
+            dirs[:] = [d for d in dirs if d != ".git" and "@" not in d]   # not a second tree (<pkg>@master)
             for f in files:
                 ext = os.path.splitext(f)[1].lower()
                 p = os.path.join(root, f)
@@ -49,11 +57,16 @@ def main() -> None:
         parts = s.lower().split("/")
         hit = by_tail.get("/".join(parts[-2:])) if len(parts) > 1 else None
         hit = hit or by_base.get(parts[-1])
-        if hit is None:
-            continue
         link = os.path.join(OUT, *s.split("/"))
-        if os.path.lexists(link):
+        # a forwarding header (platform/x.h: #include <dir/x.h>) found for the spelling dir/x.h by its base name would loop
+        if hit is None or (len(parts) > 1 and includes_itself(hit, s)):
+            if os.path.islink(link):
+                os.unlink(link)
             continue
+        if os.path.lexists(link):
+            if not os.path.islink(link) or os.readlink(link) == hit:
+                continue
+            os.unlink(link)                             # a link from an earlier run (an older export): refresh it
         os.makedirs(os.path.dirname(link), exist_ok=True)
         os.symlink(hit, link)
         n += 1

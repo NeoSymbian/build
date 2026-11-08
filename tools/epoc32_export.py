@@ -31,6 +31,12 @@ DEFAULT_PKGS = [
     "oss.FCL.sf.mw.appsupport", "oss.FCL.sf.mw.classicui", "oss.FCL.sf.mw.inputmethods", "oss.FCL.sf.mw.hapticsservices",
     "oss.FCL.sf.mw.appinstall",
     "oss.FCL.sf.app.utils", "oss.FCL.sf.app.rndtools",
+    # headers the Avkon stack includes from the rest of the platform (comms, location, XML, ALF, profiles, idle, widgets,
+    # DRM, SVG-T, the layout system, contacts)
+    "oss.FCL.sf.os.commsfw", "oss.FCL.sf.os.networkingsrv", "oss.FCL.sf.os.lbs", "oss.FCL.sf.os.xmlsrv",
+    "oss.FCL.sf.mw.uiaccelerator", "oss.FCL.sf.mw.gsprofilesrv", "oss.FCL.sf.mw.homescreensrv", "oss.FCL.sf.mw.web",
+    "oss.FCL.sf.mw.drm", "oss.FCL.sf.mw.svgt", "oss.FCL.sf.mw.uitools", "oss.FCL.sf.app.contacts",
+    "oss.FCL.sf.os.cellularsrv", "oss.FCL.sf.mw.phonesrv", "oss.FCL.sf.mw.usbservices",
 ]
 SKIP_DIRS = {"test", "tsrc", "tests", "documentation", "examples", "internal"}
 SECTION = re.compile(r"^\s*PRJ_(\w+)", re.I)

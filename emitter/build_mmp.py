@@ -205,7 +205,8 @@ def build_resources(key: str, m, rom: str) -> int:
         stem = os.path.splitext(b["target"] or os.path.basename(b["rss"]))[0].lower()
         tp = (b["targetpath"] or "resource/apps").replace("\\", "/").strip("/")
         out = os.path.join(HERE, "rsc", *tp.split("/"), stem + ".rsc")
-        rsg = os.path.join(MMP.EPOC32, "include", stem + ".rsg") if b["header"] else None
+        # the .rsg always (as raptor: HEADER only decides whether it is exported; hlplch.cpp includes its own lch.rsg)
+        rsg = os.path.join(MMP.EPOC32, "include", stem + ".rsg")
         ok, log = rsc.compile_rss(b["rss"], out, rsg, incs=m.userinc + m.sysinc, uids=b["uids"],
                                   defs=C.COMPONENTS[key].get("rdefs", ()))
         if ok:

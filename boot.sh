@@ -7,7 +7,8 @@
 #            e.g. RUN=neohello,neor1)
 #   MONITOR  raw QEMU monitor commands sent after RUN, `;`-separated, MON_GAP seconds apart (default 1; drags need
 #            ~0.3) (e.g. a tap on the absolute pointer: MONITOR="mouse_move 3285 27904;mouse_button 1;mouse_button 0";
-#            0..0x7FFF covers the screen; `info status` is a harmless filler to wait).
+#            0..0x7FFF covers the screen). Two more commands: `expect TEXT` waits until TEXT appears in the serial
+#            log (after the previous expect's match; EXPECT_MAX seconds, default 30) and `wait N` sleeps N seconds.
 #   SCREEN   the screen size, e.g. SCREEN=1080x2160 (the Pixel 3a XL); default the board's 768x640
 #   SECS     the most the whole run may take (default 600)
 #   SNAPSHOT=1  keep the booted machine in out/snap/ and start later runs of the same ROM and C: from it
@@ -18,9 +19,10 @@ cd "$(dirname "$0")"
 RUN="${RUN:-dir}"
 case $RUN in *[!a-z0-9,]*|""|,*|*,|*,,*) echo "RUN: comma-separated words of a-z and 0-9" >&2; exit 2 ;; esac
 MONITOR="${MONITOR:-}"
-case $MONITOR in *[!a-z0-9_\ \;-]*) echo "MONITOR: monitor commands of a-z, 0-9, _ - and spaces, ;-separated" >&2; exit 2 ;; esac
+case $MONITOR in *[!A-Za-z0-9_\ \;:,.\(\)\|-]*) echo "MONITOR: commands of letters, digits, spaces and _ : , . ( ) | -, ;-separated" >&2; exit 2 ;; esac
 MON_GAP="${MON_GAP:-1}"
 case $MON_GAP in *[!0-9.]*|"") echo "MON_GAP: seconds, e.g. 0.3" >&2; exit 2 ;; esac
+case ${EXPECT_MAX:-30} in *[!0-9.]*) echo "EXPECT_MAX: seconds" >&2; exit 2 ;; esac
 SCREEN="${SCREEN:-768x640}"
 case $SCREEN in *[!0-9x]*|x*|*x|*x*x*) echo "SCREEN: WIDTHxHEIGHT, e.g. 1080x2160" >&2; exit 2 ;; esac
 SECS="${SECS:-600}"
@@ -32,7 +34,7 @@ SNAP_ARGS=""
 rc=0
 # shellcheck disable=SC2086
 docker run --rm $USER_ARGS -v "$PWD/out:/work" -e SERIAL=/work/serial.log -e FB=/work/fb.ppm \
-	-e C_DRIVE=/work/c_drive.img -e RUN="$RUN" -e MONITOR="$MONITOR" -e MON_GAP="$MON_GAP" -e SCREEN="$SCREEN" \
+	-e C_DRIVE=/work/c_drive.img -e RUN="$RUN" -e MONITOR="$MONITOR" -e MON_GAP="$MON_GAP" ${EXPECT_MAX:+-e EXPECT_MAX="$EXPECT_MAX"} -e SCREEN="$SCREEN" \
 	$SNAP_ARGS "$QEMU_IMAGE" run-syborg /work/minigui.rom "$SECS" > out/qemu-monitor.log 2>&1 || rc=$?
 cat out/qemu-monitor.log
 [ -s out/fb.ppm ] || { echo "no framebuffer dump: see out/qemu-monitor.log" >&2; exit 1; }

@@ -16,7 +16,6 @@ grep -v '^#' sources.lock | while IFS="$(printf '\t')" read -r pkg commit; do
 	mkdir -p "$d"
 	[ -d "$d/.git" ] || git -C "$d" init -q
 	repo=$pkg; [ "$pkg" = oss.FCL.sf.os.kernelhwsrv ] && repo=kernel	# the kernelhwsrv fork is NeoSymbian/kernel
-	[ "$pkg" = oss.FCL.sf.adapt.Qemu ] && repo=symbian-qemu	# the adapt.Qemu fork is NeoSymbian/symbian-qemu
 	git -C "$d" fetch -q --depth 1 "$BASE/$repo.git" "$commit"
 	git -C "$d" checkout -q --force FETCH_HEAD
 done

@@ -35,7 +35,7 @@ LD_SCRIPT = os.path.join(HERE, "efile.ld")
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
 FS = os.path.join(SRC, "userlibandfileserver", "fileserver")
-QB = os.path.join(REPO, "src", "oss.FCL.sf.adapt.Qemu",
+QB = os.path.join(REPO, "src", "symbian-qemu",
                   "baseport", "syborg")
 
 # estart.mmp: TARGETTYPE exe, UID 0 0x10272C04, no explicit stack/heap (defaults).

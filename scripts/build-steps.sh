@@ -24,6 +24,8 @@ step kernel-ekern bash kernel/build_ekern.sh
 step euser python3 emitter/build_euser_device.py
 # the epoc32/include tree the userland mmps #include (abld export equivalent)
 step epoc32-export python3 tools/epoc32_export.py
+# the icon-ID headers (<x>.mbg) S60 sources include, which the mifconv build step emitted
+step mbg python3 tools/mbg.py
 step casefix python3 tools/casefix.py
 step fileserver-objects bash kernel/build_efile.sh
 step efsrv python3 emitter/build_efsrv_device.py

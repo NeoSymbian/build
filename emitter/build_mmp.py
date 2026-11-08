@@ -243,7 +243,9 @@ def build(key: str, rsc_only: bool = False) -> int:
         r = build_resources(key, m, rom)
         compile_registration(key, m, rom)
         return r
-    build_resources(key, m, rom)
+    bad = build_resources(key, m, rom)
+    if comp.get("rsc_only"):            # a resource-only component (its .rsg / .rsc are the product)
+        return bad
     work = os.path.join(OUT_ROOT, key)
     os.makedirs(work, exist_ok=True)
     print(f"=== {key}: {m.target} ({m.targettype}) -> {rom}   [{len(m.sources)} sources]")
@@ -513,14 +515,20 @@ def main() -> int:
     rsc_only = "--rsc" in args
     args = [a for a in args if a != "--rsc"]
     keys = list(C.COMPONENTS) if args == ["--all"] else args
-    rc = 0
-    for k in keys:
-        try:
-            rc |= build(k, rsc_only)
-        except (Exception, SystemExit) as e:   # noqa: BLE001 -- one bad mmp (or a `link failed` SystemExit) must
-            print(f"=== {k}: FAILED: {(str(e).splitlines() or ['?'])[0][:200]}")   # not stop a batch
-            rc = 1
-    return rc
+    while True:
+        failed = []
+        for k in keys:
+            try:
+                if build(k, rsc_only):
+                    failed.append(k)
+            except (Exception, SystemExit) as e:   # noqa: BLE001 -- one bad mmp (or a `link failed` SystemExit) must
+                print(f"=== {k}: FAILED: {(str(e).splitlines() or ['?'])[0][:200]}")   # not stop a batch
+                failed.append(k)
+        # resources include each other's .rsg (eikcdlg.rss -> avkon.rsg): run the failed ones again while that helps
+        if not (rsc_only and failed and len(failed) < len(keys)):
+            return 1 if failed else 0
+        print(f"--- resources: {len(failed)} component(s) again: {' '.join(failed)}")
+        keys = failed
 
 
 if __name__ == "__main__":

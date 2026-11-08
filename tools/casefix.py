@@ -14,7 +14,7 @@ import re
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOTS = [os.path.join(REPO, ".epoc32", "include"), os.path.join(REPO, "src")]
 OUT = os.path.join(REPO, ".casefix")
-HEADER_EXT = {".h", ".inl", ".hrh", ".mmh", ".rh", ".ra", ".rsg", ".hpp", ".mph", ".inc", ".pan", ".rls", ".loc"}
+HEADER_EXT = {".h", ".inl", ".hrh", ".mmh", ".rh", ".ra", ".rsg", ".hpp", ".mph", ".inc", ".pan", ".rls", ".loc", ".lag"}
 SCAN_EXT = HEADER_EXT | {".cpp", ".c", ".cia", ".rss", ".mmp", ".cc", ".s"}
 INCLUDE = re.compile(rb'^\s*#\s*include\s*[<"]([^>"\r\n]+)[>"]', re.M)
 

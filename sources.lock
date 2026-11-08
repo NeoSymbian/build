@@ -1,4 +1,5 @@
 # package<TAB>commit -- the NeoSymbian forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
+# (<package>@<tag>: a second checkout of the same fork at another commit, in src/<package>@<tag>)
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
 oss.FCL.sf.os.kernelhwsrv	bee98302e1614095d72c5aa00916d8b6a52daa6f
 oss.FCL.sf.os.ossrv	1e9520caca186c601dd9768449b86bc72be39a22
@@ -8,7 +9,7 @@ oss.FCL.sf.os.graphics	ff133bc50e6158bfb08cc093b0f0055321dcde99
 oss.FCL.sf.os.devicesrv	ce33ac3d46a302f839e326636a065bd35a6406e4
 oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
 symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
-oss.FCL.sf.mw.uiresources	b78660bec78835802edd6575b96897d4aba58376
+oss.FCL.sf.mw.uiresources	6a958a5df3c6a1f6fb55495dcb9d0d0858a536a8
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
 oss.FCL.sf.os.mmaudio	a39c075cce88671b23d13598fda2f7cbf008f3bb
 oss.FCL.sf.os.mmimaging	dcc68da0bf7c10c664c864262d3213b5b30124c9
@@ -19,3 +20,4 @@ oss.FCL.sf.mw.hapticsservices	385e5617a81eb3eeb8970c5aaed4cc4187436e6e
 oss.FCL.sf.app.utils	18752ab088dd0f4ebf65ea9403b2c8a1be892b3e
 oss.FCL.sf.app.rndtools	b6617c97263db5af5f0bbe39c52c89dc355af373
 oss.FCL.sf.mw.appinstall	8262df3e5a6536fcb9b3178be6c741061f22e69d
+oss.FCL.sf.mw.uiresources@master	b78660bec78835802edd6575b96897d4aba58376

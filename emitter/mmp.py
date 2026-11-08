@@ -26,8 +26,15 @@ VARIANT_HRH = os.path.join(CEDAR, "inc", "Symbian_OS_tb102sf.hrh")
 CPP = "arm-none-eabi-cpp"
 
 
+S60_VARIANT_HRH = os.path.join(EPOC32, "include", "bldvariant.hrh")
+
+
 def variant_for(path: str) -> str:
-    """The product-variant .hrh (feature flags) every mmp and every source is preprocessed under."""
+    """The product-variant .hrh (feature flags) an mmp / source is preprocessed under: the S60 (mw/app layer) code under
+    bldvariant.hrh (the Symbian variant + the KFeatureId* runtime ids + the RD_* codeline flags), as Phorepoc's build does;
+    the OS layer under the plain Symbian OS variant."""
+    if re.search(r"oss\.FCL\.sf\.(mw|app)\.", path.replace("\\", "/")) and os.path.isfile(S60_VARIANT_HRH):
+        return S60_VARIANT_HRH
     return VARIANT_HRH
 
 
@@ -186,20 +193,19 @@ def sf_mirror_incs() -> list:
     if _SF_INCS:
         return _SF_INCS
     root = os.path.join(REPO, ".sf-mirror")
-    if not os.path.isdir(os.path.join(root, "d1")):
-        chain = root
-        for i in range(1, 10):
-            chain = os.path.join(chain, f"d{i}")
-        os.makedirs(chain, exist_ok=True)
-        for pkg in (os.listdir(BASE) if os.path.isdir(BASE) else []):
-            m = re.match(r"oss\.FCL\.sf\.(os|mw|app|adapt|tools)\.(.+)$", pkg)
-            if not m:
-                continue
-            link = os.path.join(root, m.group(1), m.group(2))
-            if os.path.lexists(link):
-                continue
-            os.makedirs(os.path.dirname(link), exist_ok=True)
-            os.symlink(os.path.join(BASE, pkg), link)
+    chain = root
+    for i in range(1, 10):
+        chain = os.path.join(chain, f"d{i}")
+    os.makedirs(chain, exist_ok=True)
+    for pkg in (os.listdir(BASE) if os.path.isdir(BASE) else []):     # every run: packages pinned later get a link too
+        m = re.match(r"oss\.FCL\.sf\.(os|mw|app|adapt|tools)\.([^@]+)$", pkg)   # not a second tree (<pkg>@master)
+        if not m:
+            continue
+        link = os.path.join(root, m.group(1), m.group(2))
+        if os.path.lexists(link):
+            continue
+        os.makedirs(os.path.dirname(link), exist_ok=True)
+        os.symlink(os.path.join(BASE, pkg), link)
     chain = root
     for i in range(1, 10):
         chain = os.path.join(chain, f"d{i}")

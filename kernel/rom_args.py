@@ -38,6 +38,7 @@ def main() -> None:
                 rsc = os.path.splitext(rom)[0] + ".rsc"
                 if os.path.isfile(os.path.join(REPO, "emitter", rsc)):
                     out += ["--data", "Resource\\Plugins\\" + rsc + "=emitter/" + rsc]
+        if os.path.isfile(img) or comp.get("rsc_only"):
             for spec in comp.get("rom_data", []):     # data files the component needs at run time
                 out += ["--data", spec]
         man = img + ".romfiles"

@@ -1,56 +1,42 @@
 #!/bin/sh
-# boot.sh -- boot out/minigui.rom on QEMU Syborg (ghcr.io/neosymbian/qemu-syborg), type `dir` into ESHELL, and write
-# out/fb.png (the screen) and out/serial.log (the kernel's serial output).
-#   SECS     how long the emulator runs (default 90)   DELAY   seconds to wait before typing (default 55)
-#   RUN      the commands typed into ESHELL, comma-separated, GAP seconds apart (default `dir`; lower-case letters
-#            and digits only, e.g. RUN=neohello,neor1). SECS defaults to 90 + GAP per extra command.
+# boot.sh -- boot out/minigui.rom on QEMU's Syborg board (ghcr.io/neosymbian/symbian-qemu), type RUN into ESHELL,
+# send MONITOR, and write out/fb.png (the screen) and out/serial.log (the kernel's serial output).
+# The runner (run-syborg in the image) is event-driven: it types once ESHELL or neoui is up, moves to the next
+# command when the last one's process started and the serial log went quiet, and stops when the script is done.
+#   RUN      commands typed into ESHELL, comma-separated (default `dir`; lower-case letters and digits only,
+#            e.g. RUN=neohello,neor1)
 #   MONITOR  raw QEMU monitor commands sent after RUN, `;`-separated, MON_GAP seconds apart (default 1; drags need
 #            ~0.3) (e.g. a tap on the absolute pointer: MONITOR="mouse_move 3285 27904;mouse_button 1;mouse_button 0";
 #            0..0x7FFF covers the screen; `info status` is a harmless filler to wait).
-#   SCREEN   the screen size, e.g. SCREEN=1080x2160 (the Pixel 3a XL); default the board's 768x640. The board
-#            description is patched (tools/dtb_screen.py) and the Symbian frame buffer driver sizes itself from it.
+#   SCREEN   the screen size, e.g. SCREEN=1080x2160 (the Pixel 3a XL); default the board's 768x640
+#   SECS     the most the whole run may take (default 600)
+#   SNAPSHOT=1  keep the booted machine in out/snap/ and start later runs of the same ROM and C: from it
 set -eu
 cd "$(dirname "$0")"
 [ -f out/minigui.rom ] || { echo "out/minigui.rom is missing: run ./build.sh first" >&2; exit 1; }
 . ./images.sh
-RUN="${RUN:-dir}"; GAP="${GAP:-8}"
+RUN="${RUN:-dir}"
 case $RUN in *[!a-z0-9,]*|""|,*|*,|*,,*) echo "RUN: comma-separated words of a-z and 0-9" >&2; exit 2 ;; esac
 MONITOR="${MONITOR:-}"
 case $MONITOR in *[!a-z0-9_\ \;-]*) echo "MONITOR: monitor commands of a-z, 0-9, _ - and spaces, ;-separated" >&2; exit 2 ;; esac
 MON_GAP="${MON_GAP:-1}"
 case $MON_GAP in *[!0-9.]*|"") echo "MON_GAP: seconds, e.g. 0.3" >&2; exit 2 ;; esac
-NMON=0; [ -n "$MONITOR" ] && NMON=$(echo "$MONITOR" | tr ';' '\n' | wc -l | tr -d ' ')
-MONSECS=$(awk "BEGIN { print int($NMON * $MON_GAP + 0.999) }")
-NCMD=$(echo "$RUN" | tr ',' '\n' | wc -l | tr -d ' ')
-SECS="${SECS:-$((90 + GAP * (NCMD - 1)))}"; DELAY="${DELAY:-55}"
-REST=$((SECS - DELAY - 3 - GAP * (NCMD - 1) - MONSECS))
-[ "$REST" -ge 0 ] || { echo "SECS too short for $NCMD commands" >&2; exit 2; }
+SCREEN="${SCREEN:-768x640}"
+case $SCREEN in *[!0-9x]*|x*|*x|*x*x*) echo "SCREEN: WIDTHxHEIGHT, e.g. 1080x2160" >&2; exit 2 ;; esac
+SECS="${SECS:-600}"
 rm -f out/fb.ppm out/fb.png out/serial.log
 USER_ARGS=""
 [ "$(uname -s)" = Linux ] && USER_ARGS="--user $(id -u):$(id -g)"
-DTB_ARGS=""
-if [ -n "${SCREEN:-}" ]; then
-	case $SCREEN in *[!0-9x]*|x*|*x|*x*x*) echo "SCREEN: WIDTHxHEIGHT, e.g. 1080x2160" >&2; exit 2 ;; esac
-	docker run --rm --entrypoint cat "$QEMU_IMAGE" /opt/qemu-syborg/syborg.dtb > out/syborg.dtb
-	# shellcheck disable=SC2086
-	docker run --rm $USER_ARGS -v "$PWD:/work" -w /work "$BUILD_IMAGE" \
-		python3 tools/dtb_screen.py out/syborg.dtb "out/syborg-$SCREEN.dtb" "$SCREEN"
-	DTB_ARGS="-e DTB=/work/syborg-$SCREEN.dtb"
-fi
-# The QEMU monitor is the container's stdin: `sendkey` types into the emulated keyboard. ESHELL needs a while to come up.
+SNAP_ARGS=""
+[ "${SNAPSHOT:-0}" = 1 ] && SNAP_ARGS="-e SNAPSHOT=/work/snap"
+rc=0
 # shellcheck disable=SC2086
-{ sleep "$DELAY"
-  first=1
-  for cmd in $(echo "$RUN" | tr ',' ' '); do
-    [ "$first" = 1 ] || sleep "$GAP"; first=0
-    for k in $(echo "$cmd" | sed 's/./& /g') ret; do echo "sendkey $k"; sleep 0.5; done
-  done
-  [ -z "$MONITOR" ] || echo "$MONITOR" | tr ';' '\n' | while read -r m; do sleep "$MON_GAP"; echo "$m"; done
-  sleep "$REST"
-} | docker run --rm -i $USER_ARGS -v "$PWD/out:/work" \
-	-e SERIAL=/work/serial.log -e FB=/work/fb.ppm -e C_DRIVE=/work/c_drive.img $DTB_ARGS \
-	"$QEMU_IMAGE" run-syborg /work/minigui.rom "$SECS" > out/qemu-monitor.log 2>&1 || true
+docker run --rm $USER_ARGS -v "$PWD/out:/work" -e SERIAL=/work/serial.log -e FB=/work/fb.ppm \
+	-e C_DRIVE=/work/c_drive.img -e RUN="$RUN" -e MONITOR="$MONITOR" -e MON_GAP="$MON_GAP" -e SCREEN="$SCREEN" \
+	$SNAP_ARGS "$QEMU_IMAGE" run-syborg /work/minigui.rom "$SECS" > out/qemu-monitor.log 2>&1 || rc=$?
+cat out/qemu-monitor.log
 [ -s out/fb.ppm ] || { echo "no framebuffer dump: see out/qemu-monitor.log" >&2; exit 1; }
 # shellcheck disable=SC2086
 docker run --rm $USER_ARGS -v "$PWD:/work" -w /work "$BUILD_IMAGE" python3 tools/ppm2png.py out/fb.ppm out/fb.png
 echo "out/fb.png, out/serial.log"
+exit "$rc"

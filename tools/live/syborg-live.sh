@@ -1,12 +1,13 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # Show the Syborg emulator running on ZimaOS (container neosymbian-live, started by `neo live` there) on this Mac:
-# an SSH tunnel for the QEMU monitor (keys, touches) and a ~3 fps mirror of the screen dump and serial log.
+# SSH tunnels for VNC (127.0.0.1:5900: open it in any VNC viewer to see the screen, type and touch) and the QEMU
+# monitor (127.0.0.1:4444, for mon.sh), and a ~3 fps mirror of the screen dump and serial log.
 OUT="$(cd "$(dirname "$0")/../.." && pwd)/out"	# this checkout's out/ (gitignored)
 LIVE=${LIVE:-/DATA/AppData/symbian-build/build/out/live}
 CTL="$HOME/.ssh/neosymbian-live-%C"
 ssh -o BatchMode=yes -o ControlMaster=yes -o ControlPath="$CTL" -o ControlPersist=no -N \
-	-L 127.0.0.1:4444:127.0.0.1:4444 zimaos &
+	-L 127.0.0.1:4444:127.0.0.1:4444 -L 127.0.0.1:5900:127.0.0.1:5900 zimaos &
 tunnel=$!
 trap 'kill $tunnel 2>/dev/null' EXIT INT TERM
 sleep 2

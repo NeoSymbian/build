@@ -33,6 +33,7 @@ jobs:
             readimage 2>&1 | grep -q "Readimage"
             uidcrc 0x10000079 0x100039ce 0x10005b8b /tmp/u && [ "$(wc -c < /tmp/u)" = 16 ]
             qemu-system-aarch64 --version | head -1
+            qemu-system-arm -M help | grep -q "^syborg "
             python3 -c "import PIL"'
       - name: Publish
         run: |

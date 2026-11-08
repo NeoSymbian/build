@@ -1,7 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # Show the Syborg emulator running on ZimaOS (container neosymbian-live, started by `neo live` there) on this Mac:
-# SSH tunnels for VNC (127.0.0.1:5900: open it in any VNC viewer to see the screen, type and touch) and the QEMU
+# SSH tunnels for VNC (127.0.0.1:5900: open vnc://127.0.0.1:5900 in Screen Sharing or any VNC viewer, password
+# symbian unless neo live had VNC_PASSWORD; it shows the screen and takes keys and touches) and the QEMU
 # monitor (127.0.0.1:4444, for mon.sh), and a ~3 fps mirror of the screen dump and serial log.
 OUT="$(cd "$(dirname "$0")/../.." && pwd)/out"	# this checkout's out/ (gitignored)
 LIVE=${LIVE:-/DATA/AppData/symbian-build/build/out/live}

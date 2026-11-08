@@ -10,7 +10,8 @@
 #   neo nkernsa [BOARD]          the nanokernel test image                           (kernel: build-kernel.sh)
 #   neo qemu [SECS] [WHAT]       boot the qemu board's image on QEMU virt; WHAT = ekern (default) | kernel (nkernsa)
 #   neo flash [BOARD]            fastboot-boot the board's image (RAM only) and keep its console log (phone.py)
-#   neo live [SECS] | stop       run the ROM (out/minigui.rom) in the background, VNC on 127.0.0.1:5900, monitor on 4444, screen and
+#   neo live [SECS] | stop       run the ROM (out/minigui.rom) in the background, VNC on 127.0.0.1:5900 (password VNC_PASSWORD,
+#                                default symbian), monitor on 4444, screen and
 #                                serial in out/live/ (watch from a laptop: tools/live/syborg-live.sh, tools/live/mon.sh)
 #
 # BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito). KERNEL = the kernel checkout
@@ -58,7 +59,8 @@ live)    if [ "${1:-}" = stop ]; then docker rm -f neosymbian-live >/dev/null &&
 	# shellcheck disable=SC2086
 	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"	# as boot.sh: out/ stays the user's
 	docker run -d $user --name neosymbian-live -p 127.0.0.1:4444:4444 -p 127.0.0.1:5900:5900 -v "$L:/work" -e LIVE=1 -e LISTEN=0.0.0.0 \
+		-e VNC_PASSWORD="${VNC_PASSWORD:-symbian}" \
 		-e C_DRIVE=/work/c_drive.img -e SCREEN="${SCREEN:-768x640}" "$QEMU_IMAGE" run-syborg /work/minigui.rom "${1:-3600}" >/dev/null
-	echo "neosymbian-live: VNC 127.0.0.1:5900, monitor 127.0.0.1:4444, screen $L/fb.ppm, serial $L/serial.log (neo live stop)" ;;
+	echo "neosymbian-live: VNC 127.0.0.1:5900 (password ${VNC_PASSWORD:-symbian}), monitor 127.0.0.1:4444, screen $L/fb.ppm, serial $L/serial.log (neo live stop)" ;;
 *)       sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; [ "$cmd" = help ] ;;
 esac

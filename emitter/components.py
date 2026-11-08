@@ -77,6 +77,8 @@ COMPONENTS = {
     # NeoSymbian: the stock text console (a client of !E32WindowServer), ECONS.DLL in the UI ROM (kernel/rom_args.py)
     # where the Rust UI replaces the window server and its Terminal app serves !E32WindowServer
     "econs": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kernel/eka/ewsrv/econs.mmp", rom="econs_twin.dll"),
+    # the Symbian Foundation's MiniGUI test app (a plain RWsSession client): the first legacy GUI program
+    "grid": dict(mmp="symbian-qemu/applications/Symbian_MiniGUI_TestApp/Grid.mmp"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL) ---
     "elocl_language_en_gb": dict(
         mmp="oss.FCL.sf.mw.uiresources/locales/loce32/language/group/elocl_language_en_gb.mmp", rom="elocl_lan.001"),

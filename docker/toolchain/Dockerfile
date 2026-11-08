@@ -28,9 +28,10 @@ RUN set -eu; grep -v '^#' /hosttools/sources.lock | while IFS="$(printf '\t')" r
 
 FROM debian:trixie-slim
 RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
-        gcc-14-aarch64-linux-gnu g++-14-aarch64-linux-gnu binutils-aarch64-linux-gnu qemu-system-arm \
+        gcc-14-aarch64-linux-gnu g++-14-aarch64-linux-gnu binutils-aarch64-linux-gnu \
         build-essential libc6:i386 libstdc++6:i386 \
         python3 python3-pil fonts-dejavu-core perl file xxd gzip zip ca-certificates curl xz-utils git \
+        libglib2.0-0t64 libpixman-1-0 libfdt1 zlib1g \
     && rm -rf /var/lib/apt/lists/*
 ARG ARM_GNU=arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi
 ARG ARM_GNU_SHA256=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823
@@ -40,7 +41,11 @@ RUN curl -fsSL -o /tmp/arm.tar.xz \
     && mkdir -p /opt/arm-gnu && tar -xJf /tmp/arm.tar.xz -C /opt/arm-gnu --strip-components=1 \
     && rm -rf /tmp/arm.tar.xz /opt/arm-gnu/share/doc
 COPY --from=hosttools /opt/symbian-hosttools /opt/symbian-hosttools
-ENV PATH=/opt/arm-gnu/bin:/opt/symbian-hosttools:$PATH \
+# QEMU (qemu-system-aarch64 for the kernel's virt runs, qemu-system-arm with the Syborg board): the same build as
+# ghcr.io/neosymbian/symbian-qemu, pinned like images.sh's QEMU_IMAGE, so both streams use one QEMU.
+COPY --from=ghcr.io/neosymbian/symbian-qemu@sha256:96a35e14fc5fa0855f3cc37c87bc6c91520401dc1ecc24fb2b1d2acb5e601df5 \
+     /opt/symbian-qemu /opt/symbian-qemu
+ENV PATH=/opt/arm-gnu/bin:/opt/symbian-hosttools:/opt/symbian-qemu/bin:$PATH \
     CROSS=aarch64-linux-gnu-
 LABEL org.opencontainers.image.source=https://github.com/NeoSymbian/build \
       org.opencontainers.image.description="NeoSymbian build image: AArch64 kernel + 2010 ARM user side" \

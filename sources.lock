@@ -7,7 +7,7 @@ oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
 oss.FCL.sf.os.graphics	ff133bc50e6158bfb08cc093b0f0055321dcde99
 oss.FCL.sf.os.devicesrv	ce33ac3d46a302f839e326636a065bd35a6406e4
 oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
-oss.FCL.sf.adapt.Qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
+symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
 oss.FCL.sf.mw.uiresources	b78660bec78835802edd6575b96897d4aba58376
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
 oss.FCL.sf.os.mmaudio	a39c075cce88671b23d13598fda2f7cbf008f3bb

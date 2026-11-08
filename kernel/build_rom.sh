@@ -65,7 +65,7 @@ ARGS=.ekern-build/rombuild.args
     --xip 'Sys\Bin\ECOMP.FSY=emitter/ecomp.fsy' \
     --xip 'Sys\Bin\EKDATA.DLL=emitter/ekdata.dll' \
     --xip 'Sys\Bin\ESHELL.EXE=emitter/eshell.exe' \
-    --data 'Sys\Data\estart.txt=src/oss.FCL.sf.adapt.Qemu/baseport/syborg/estart.txt' \
+    --data 'Sys\Data\estart.txt=src/symbian-qemu/baseport/syborg/estart.txt' \
     --data 'System\Data\wsini.ini='$G'/windowing/windowserver/minigui/group/wsini_minigui-stripped.ini' \
     --xinfo 'databss=0x00400000,cap1=0xFFFFFFFF,cap2=0xFFFFFFFF'
   # NeoSymbian: the Rust EXEs of rust/exes.txt (emitter/build_rust_exe.py writes their --xip lines)

@@ -7,7 +7,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 B="src/oss.FCL.sf.os.kernelhwsrv/kernel/eka"
-QB="src/oss.FCL.sf.adapt.Qemu/baseport/syborg"
+QB="src/symbian-qemu/baseport/syborg"
 VSPEC="$QB/specific"; VTUS="syborg.cpp interrupts.cpp assp.cpp syborg.cia interrupts.cia"
 HAL="$(cd src/oss.FCL.sf.os.kernelhwsrv/halservices/hal/inc && pwd)"
 MM="$B/memmodel"

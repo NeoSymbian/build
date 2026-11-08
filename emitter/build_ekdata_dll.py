@@ -31,7 +31,7 @@ SYMCC = BE.SYMCC
 STUB_NAME = BE.STUB_NAME
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
-KEYMAP = os.path.join(REPO, "src", "oss.FCL.sf.adapt.Qemu",
+KEYMAP = os.path.join(REPO, "src", "symbian-qemu",
                       "baseport", "syborg", "keymap", "keymap.cpp")
 
 UID2_DLL = 0x1000008D

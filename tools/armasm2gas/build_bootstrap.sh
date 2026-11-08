@@ -14,7 +14,7 @@ cd "$(dirname "$0")/../.."
 
 AS=arm-none-eabi-as; LD=arm-none-eabi-ld; NM=arm-none-eabi-nm
 KH=src/oss.FCL.sf.os.kernelhwsrv/kernel/eka
-QB=src/oss.FCL.sf.adapt.Qemu/baseport/syborg
+QB=src/symbian-qemu/baseport/syborg
 
 OUT="${OUT:-.bootstrap-build}"; mkdir -p "$OUT"
 G="$OUT/inc"

@@ -8,7 +8,7 @@ pinned image.
 | `neo fetch`, `neo rom`, `neo boot` | The 2010 Symbian user side, with the Rust programs and UI from [e32-rs](https://github.com/NeoSymbian/e32-rs) and [neoui](https://github.com/NeoSymbian/neoui), as a ROM booted on QEMU Syborg |
 | `neo live [SECS]`, `neo live stop` | The same ROM running in the background, watched live (`tools/live/`) |
 | `neo kernel BOARD`, `neo nkernsa BOARD`, `neo qemu`, `neo flash BOARD` | The AArch64 kernel from [kernel](https://github.com/NeoSymbian/kernel) (checked out beside this repo) for a board (`qemu`, `bonito`), on QEMU virt or the phone |
-| `images.sh` | The build image (`docker/toolchain`, `ghcr.io/neosymbian/toolchain`) and the emulator (`ghcr.io/neosymbian/qemu-syborg`), pinned by digest |
+| `images.sh` | The build image (`docker/toolchain`, `ghcr.io/neosymbian/toolchain`) and the emulator (`ghcr.io/neosymbian/symbian-qemu`), pinned by digest |
 | `zimaos/` | The home-server build desktop |
 
 This repository started as Phorepoc's `symbian-2010`: the 2010 Symbian open-source release, built from its own source
@@ -32,7 +32,7 @@ inside the NeoSymbian build image ([docker/toolchain](docker/toolchain), publish
 The first build takes a few minutes on a big machine, or up to 20 on a laptop. After that only what changed gets
 rebuilt, and `FULL=1 ./build.sh` starts from scratch. Every step logs to `out/log/`.
 
-`boot.sh` uses the emulator image from [qemu-syborg](https://github.com/NeoSymbian/qemu-syborg), whose README also
+`boot.sh` uses the emulator image from [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu), whose README also
 explains how to run it by hand and watch it live. The CI does exactly these three steps on every push and keeps the
 screenshot and the serial log.
 

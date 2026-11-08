@@ -30,7 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 
 HALSRC = os.path.join(devlink.SRC, "halservices", "hal")
-SYBHAL = os.path.join(REPO, "src", "oss.FCL.sf.adapt.Qemu",
+SYBHAL = os.path.join(REPO, "src", "symbian-qemu",
                       "baseport", "syborg", "hal")
 UID3 = 0x100039E8   # hal.mmp UID
 STUB_NAME = BE.STUB_NAME

@@ -24,7 +24,7 @@ DEFAULT_PKGS = [
     "oss.FCL.sf.os.deviceplatformrelease", "oss.FCL.sf.os.kernelhwsrv",
     "oss.FCL.sf.os.ossrv", "oss.FCL.sf.os.persistentdata", "oss.FCL.sf.os.textandloc",
     "oss.FCL.sf.os.graphics", "oss.FCL.sf.os.devicesrv", "oss.FCL.sf.os.security",
-    "oss.FCL.sf.adapt.Qemu", "oss.FCL.sf.mw.uiresources",
+    "symbian-qemu", "oss.FCL.sf.mw.uiresources",
     # mmf/common/mmfbase.h, icl/imagedata.h (included by bafl and the window server headers)
     "oss.FCL.sf.os.mm", "oss.FCL.sf.os.mmimaging", "oss.FCL.sf.os.mmaudio",
 ]

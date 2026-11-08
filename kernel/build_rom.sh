@@ -53,6 +53,9 @@ EXPORTS="${EXPORTS#:}"
 # slot -- the stock text console econs_twin.dll instead in a UI ROM with SYSSTART.EXE, see rom_args.py -- fbserv, the
 # gdi/bitgdi/fntstore stack ...) and its resources.
 ARGS=.ekern-build/rombuild.args
+# NeoSymbian build info: the user-side ROM's build time and this repo's commit (build.sh), read by neoui's About phone
+# and Dev tools; the phone keeps it in the core ROM (kernel build-userrom.sh)
+printf 'rom %s build %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "${NEO_BUILD_REV:-unknown}" > .ekern-build/build.txt
 {
   printf '%s\n' \
     --xip 'Sys\Bin\euser.dll=emitter/euser_dev.dll' \
@@ -67,6 +70,7 @@ ARGS=.ekern-build/rombuild.args
     --xip 'Sys\Bin\ESHELL.EXE=emitter/eshell.exe' \
     --data 'Sys\Data\estart.txt=src/symbian-qemu/baseport/syborg/estart.txt' \
     --data 'System\Data\wsini.ini='$G'/windowing/windowserver/minigui/group/wsini_minigui-stripped.ini' \
+    --data 'Resource\NeoSymbian\build.txt=.ekern-build/build.txt' \
     --xinfo 'databss=0x00400000,cap1=0xFFFFFFFF,cap2=0xFFFFFFFF'
   # NeoSymbian: the Rust EXEs of rust/exes.txt (emitter/build_rust_exe.py writes their --xip lines)
   [ ! -f emitter/rust_rom.args ] || cat emitter/rust_rom.args

@@ -27,6 +27,10 @@ DEFAULT_PKGS = [
     "symbian-qemu", "oss.FCL.sf.mw.uiresources",
     # mmf/common/mmfbase.h, icl/imagedata.h (included by bafl and the window server headers)
     "oss.FCL.sf.os.mm", "oss.FCL.sf.os.mmimaging", "oss.FCL.sf.os.mmaudio",
+    # the application framework, CONE/Uikon/Avkon and the apps on them (legacy GUI apps)
+    "oss.FCL.sf.mw.appsupport", "oss.FCL.sf.mw.classicui", "oss.FCL.sf.mw.inputmethods", "oss.FCL.sf.mw.hapticsservices",
+    "oss.FCL.sf.mw.appinstall",
+    "oss.FCL.sf.app.utils", "oss.FCL.sf.app.rndtools",
 ]
 SKIP_DIRS = {"test", "tsrc", "tests", "documentation", "examples", "internal"}
 SECTION = re.compile(r"^\s*PRJ_(\w+)", re.I)

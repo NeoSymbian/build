@@ -12,3 +12,10 @@ oss.FCL.sf.mw.uiresources	b78660bec78835802edd6575b96897d4aba58376
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
 oss.FCL.sf.os.mmaudio	a39c075cce88671b23d13598fda2f7cbf008f3bb
 oss.FCL.sf.os.mmimaging	dcc68da0bf7c10c664c864262d3213b5b30124c9
+oss.FCL.sf.mw.classicui	c8e3af2baa3b3ed203d8f7efb55a899d2d98d49c
+oss.FCL.sf.mw.appsupport	aba0c0bd074be448ce85f896cb171770298d11ac
+oss.FCL.sf.mw.inputmethods	508e00db21aeb38a26e5d4826dc4df871da84867
+oss.FCL.sf.mw.hapticsservices	385e5617a81eb3eeb8970c5aaed4cc4187436e6e
+oss.FCL.sf.app.utils	18752ab088dd0f4ebf65ea9403b2c8a1be892b3e
+oss.FCL.sf.app.rndtools	b6617c97263db5af5f0bbe39c52c89dc355af373
+oss.FCL.sf.mw.appinstall	8262df3e5a6536fcb9b3178be6c741061f22e69d

@@ -12,6 +12,7 @@ Fields:
     heap_max    EXE heap max override (bytes) when the mmp's EPOCHEAPSIZE is too small
     foff_dynamic  True: _FOFF with a run-time index (estor) -- keep the classic _FOFF from the prefix header
     allow_wsd   True to accept writable static data in a DLL
+    rom_data    data files the component needs in the ROM: ["Z path=repo-relative file", ...] (kernel/rom_args.py)
 
 BUILTIN: providers built by their own scripts (euser/efsrv/hal/efile).
 """
@@ -23,6 +24,8 @@ G = "oss.FCL.sf.os.graphics"
 OSSRV = "oss.FCL.sf.os.ossrv"
 PDATA = "oss.FCL.sf.os.persistentdata"
 TXT = "oss.FCL.sf.os.textandloc"
+CUI = "oss.FCL.sf.mw.classicui"
+APF = "oss.FCL.sf.mw.appsupport/appfw"
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 BUILTIN = {
@@ -41,6 +44,19 @@ COMPONENTS = {
     "estor": dict(mmp=f"{PDATA}/persistentstorage/store/BMAKE/ESTOR.MMP", foff_dynamic=True),
     "bsul": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/bsul/group/bsul.mmp"),
     "centralrepository": dict(mmp=f"{PDATA}/persistentstorage/centralrepository/group/cenrepcli.mmp"),
+    "centralrepositorysrv": dict(mmp=f"{PDATA}/persistentstorage/centralrepository/group/cenrepsrv.mmp"),
+    "abclient": dict(mmp=f"{OSSRV}/genericservices/activebackupclient/group/abclient.mmp"),
+    "bsulinifile": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/bsul/group/bsulinifile.mmp"),
+    "charconv": dict(mmp=f"{TXT}/charconvfw/charconv_fw/group/charconv.mmp"),
+    "sysutil": dict(mmp="oss.FCL.sf.os.devicesrv/commonservices/sysutil/group/sysutil.mmp"),
+    # the System Agent server defines the platform's P&S keys (e.g. the software-install key apparc's installation monitor needs)
+    "sysagt2svr": dict(mmp=f"{OSSRV}/genericservices/systemagent/group/SysAgt2Svr.mmp"),
+    "sysagt2cli": dict(mmp=f"{OSSRV}/genericservices/systemagent/group/SysAgt2Cli.mmp"),
+    # the backup server (CBaBackupSessionWrapper: the apparc server registers with it at start-up)
+    "baksrv": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/group/Baksrv.mmp"),
+    "baksrvs": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/group/Baksrvs.mmp"),
+    # ...which, with a window server running, loads Uikon's full backup server
+    "eikbackupsrv": dict(mmp=f"{CUI}/commonuisupport/uikon/group/EIKBACKUPSRV.MMP"),
     # --- tier 3 ---
     "bafl": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/group/BAFL.MMP"),
     "ecompatchdata": dict(mmp=f"{OSSRV}/lowlevellibsandfws/pluginfw/Framework/MMPFiles/EComPatchData.mmp"),
@@ -79,6 +95,26 @@ COMPONENTS = {
     "econs": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kernel/eka/ewsrv/econs.mmp", rom="econs_twin.dll"),
     # the Symbian Foundation's MiniGUI test app (a plain RWsSession client): the first legacy GUI program
     "grid": dict(mmp="symbian-qemu/applications/Symbian_MiniGUI_TestApp/Grid.mmp"),
+    # --- the application framework and control environment (legacy GUI apps; Phorepoc's registry is the map) ---
+    "numberconversion": dict(mmp=f"{TXT}/textrendering/numberformatting/group/NumberConversion.mmp"),
+    "field": dict(mmp=f"{TXT}/textrendering/texthandling/group/FIELD.MMP"),
+    "etext": dict(mmp=f"{TXT}/textrendering/texthandling/group/ETEXT.MMP"),
+    "tagma": dict(mmp=f"{TXT}/textrendering/textformatting/group/TAGMA.MMP"),
+    "form": dict(mmp=f"{TXT}/textrendering/textformatting/group/FORM2.MMP"),
+    "apmime": dict(mmp=f"{OSSRV}/genericservices/mimerecognitionfw/apmime/APMIME.MMP"),
+    "apparc": dict(mmp=f"{APF}/apparchitecture/group/APPARC.MMP"),
+    "apgrfx": dict(mmp=f"{APF}/apparchitecture/group/APGRFX.MMP"),
+    "apfile": dict(mmp=f"{APF}/apparchitecture/group/APFILE.MMP"),
+    "aplist": dict(mmp=f"{APF}/apparchitecture/group/APLIST.MMP"),
+    # the server's Central Repository settings (apparc's own and the icon/caption overrides), as the 2010 release shipped them
+    "apserv": dict(mmp=f"{APF}/apparchitecture/group/APSERV.MMP", rom_data=[
+        f"private\\10202be9\\{uid}.txt=src/{APF}/apparchitecture/tdata/{uid}.txt" for uid in ("10003a3f", "1028583d")]),
+    "apsexe": dict(mmp=f"{APF}/apparchitecture/group/APSEXE.MMP"),
+    "viewcli": dict(mmp=f"{APF}/viewserver/group/VIEWCLI.MMP"),
+    "viewsrv": dict(mmp=f"{APF}/viewserver/group/VIEWSRV.MMP"),
+    "egul": dict(mmp=f"{CUI}/lafagnosticuifoundation/uigraphicsutils/group/EGUL.MMP"),
+    "cone": dict(mmp=f"{CUI}/lafagnosticuifoundation/cone/group/CONE.MMP"),
+    "fepbase": dict(mmp="oss.FCL.sf.mw.inputmethods/fep/frontendprocessor/group/FEPBASE.MMP"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL) ---
     "elocl_language_en_gb": dict(
         mmp="oss.FCL.sf.mw.uiresources/locales/loce32/language/group/elocl_language_en_gb.mmp", rom="elocl_lan.001"),

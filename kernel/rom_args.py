@@ -4,6 +4,7 @@ Prints one argument per line (`--xip` / spec / `--data` / spec ...) for kernel/b
 emitter/components.py entry whose image exists in emitter/, plus the files its build staged for the ROM:
   <image>.romfiles   compiled resources (build_mmp.build_resources)
   <stem>.rsc         ECOM registration next to a plug-in DLL -> \\Resource\\Plugins
+  rom_data           the component's own data files ("Z path=repo-relative file", e.g. a Central Repository .txt)
 Minigui slot renames: wserv.exe -> EWSRV.EXE (estart launches it), and ECONS.DLL (what Console::NewL loads, e.g. for
 ESHELL) = econswserv.dll, a window-server console -- or, in the UI ROM (emitter/rust_rom.args lists SYSSTART.EXE, which
 estart runs instead of the window server), econs_twin.dll: the stock text console, served by neoui's Terminal app.
@@ -37,6 +38,8 @@ def main() -> None:
                 rsc = os.path.splitext(rom)[0] + ".rsc"
                 if os.path.isfile(os.path.join(REPO, "emitter", rsc)):
                     out += ["--data", "Resource\\Plugins\\" + rsc + "=emitter/" + rsc]
+            for spec in comp.get("rom_data", []):     # data files the component needs at run time
+                out += ["--data", spec]
         man = img + ".romfiles"
         if os.path.isfile(man):
             for line in open(man).read().split():

@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// LEGACY.EXE -- a 2010 Symbian GUI program inside neoui (NeoSymbian P2): see legacy.cpp.
+
+TARGET          legacy.exe
+TARGETTYPE      exe
+UID             0x100039CE 0xE0003001
+SOURCEPATH      .
+SOURCE          legacy.cpp
+
+#include <platform_paths.hrh>
+OS_LAYER_SYSTEMINCLUDE
+
+LIBRARY         euser.lib hal.lib ws32.lib

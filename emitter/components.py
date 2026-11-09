@@ -204,6 +204,8 @@ COMPONENTS = {
     # the FEP's resources only (avkon's character map includes aknfep.rsg); the FEP itself is not built
     "aknfep": dict(mmp="oss.FCL.sf.mw.inputmethods/fep/aknfep/group/AknFep.mmp", rsc_only=True),
     # --- the legacy GUI apps ---
+    # ours: a 2010 GUI program inside neoui -- the guest window server bridge (apps/legacy/legacy.cpp)
+    "legacy": dict(mmp="../apps/legacy/legacy.mmp"),
     "perfmon": dict(mmp="oss.FCL.sf.app.rndtools/perfmon/group/perfmon.mmp"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL): from uiresources master (BRANCH_RCL_3 has no loce32) ---
     "elocl_language_en_gb": dict(

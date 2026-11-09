@@ -35,6 +35,7 @@ DSR = [(0x10279806, 0x10281805)]      # the Symbian default supported range
 # board facts that override the variant (uid: why)
 BOARD_OFF = {
     1638: "KFeatureIdUiTransitionEffects: no transition-effects (TFX) engine here; on, CAknEnv opens the themes TFX settings",
+    1718: "KFeatureIdTactileFeedback: no vibra / haptics actuator on Syborg (touchfeedback creates no client when off)",
 }
 
 

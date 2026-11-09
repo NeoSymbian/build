@@ -55,6 +55,11 @@ COMPONENTS = {
     # the System Agent server defines the platform's P&S keys (e.g. the software-install key apparc's installation monitor needs)
     "sysagt2svr": dict(mmp=f"{OSSRV}/genericservices/systemagent/group/SysAgt2Svr.mmp"),
     "sysagt2cli": dict(mmp=f"{OSSRV}/genericservices/systemagent/group/SysAgt2Cli.mmp"),
+    # the Content Access Framework (the skin server asks it whether a skin file is DRM-protected) + its plain-file agent
+    "cafutils": dict(mmp="oss.FCL.sf.os.security/contentmgmt/contentaccessfwfordrm/group/CafUtils.mmp"),
+    "caf": dict(mmp="oss.FCL.sf.os.security/contentmgmt/contentaccessfwfordrm/group/caf.mmp"),
+    "f32agentui": dict(mmp="oss.FCL.sf.os.security/contentmgmt/contentaccessfwfordrm/group/f32agentui.mmp"),
+    "f32agent": dict(mmp="oss.FCL.sf.os.security/contentmgmt/contentaccessfwfordrm/group/f32agent.mmp"),
     # the backup server (CBaBackupSessionWrapper: the apparc server registers with it at start-up)
     "baksrv": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/group/Baksrv.mmp"),
     "baksrvs": dict(mmp=f"{OSSRV}/lowlevellibsandfws/apputils/group/Baksrvs.mmp"),
@@ -155,12 +160,17 @@ COMPONENTS = {
     "eikcdlg": dict(mmp=f"{CUI}/uifw/EikStd/cdlgsrc/EIKCDLG.MMP"),
     "avkon": dict(mmp=f"{CUI}/uifw/AvKon/group/avkon.mmp", rtti=True, flags=FINDUTIL_INC, rom_data=[f"private\\10202be9\\101F876E.txt=src/{CUI}/uifw/AvKon/CenRep/101F876E.txt"]),
     "aknnotify": dict(mmp=f"{CUI}/uifw/AvKon/notifsrc/aknNotify.mmp"),
+    # the Uikon library (ECOM) plug-in that installs Avkon's app UI factory and control factories into CEikonEnv
+    "akninit": dict(mmp=f"{CUI}/uifw/AvKon/initsrc/akninit.mmp"),
     "akncapserverclient": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServerClient.mmp"),
     "akncapserver": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServer.mmp", rtti=True),
     "aknanimdll": dict(mmp=f"{CUI}/uifw/AvKon/animdllsrc/AknAnimDll.mmp"),
     "akntransitionutils": dict(mmp=f"{CUI}/uifw/AvKon/AknTransitionUtils/group/akntransitionutils.mmp"),
     "aknphysics": dict(mmp=f"{CUI}/uifw/AvKon/aknphysics/group/aknphysics.mmp"),
     "gfxtrans": dict(mmp=f"{CUI}/lafagnosticuifoundation/graphicseffects/group/GfxTransEffect.mmp"),
+    # Symbian's own null transition-effects adapter (no effects engine on this board)
+    "gfxtransadapter": dict(mmp=f"{CUI}/lafagnosticuifoundation/graphicseffects/group/GfxTransAdapterStub.mmp",
+                            rom="gfxtransadapter.dll"),
     "servicehandler": dict(mmp=f"{CUI}/applicationinterworkingfw/ServiceHandler/group/ServiceHandler.mmp"),
     "hlplch": dict(mmp=f"{CUI}/uiutils/hlplch/group/hlplch.mmp"),
     "findutil": dict(mmp=f"{CUI}/uiutils/Findutil/group/FindUtil.mmp", flags=FINDUTIL_INC),
@@ -175,8 +185,10 @@ COMPONENTS = {
     "aknskins": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkins.mmp"),
     "aknskinsrv": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrv.mmp", defs=["AKNS_TRACING_ENABLED_ERROR"], rom_data=[   # Personalisation (skins), Themes (from its .crml)
         "private\\10202be9\\101F876F.txt=src/oss.FCL.sf.mw.uiresources/skins/AknSkins/CenRep/101F876F.txt",
-        "private\\10202be9\\102818E8.txt=emitter/cenrep/102818E8.txt"]),
-    "aknskinsrvexe": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrvMain.mmp", rom="aknskinsrv.exe"),
+        "private\\10202be9\\102818E8.txt=emitter/cenrep/102818E8.txt",
+        "private\\10202be9\\102818EB.txt=emitter/cenrep/102818EB.txt"]),
+    "aknskinsrvexe": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrvMain.mmp", rom="aknskinsrv.exe",
+                          rom_data=[r"private\10207114\import\101f84b9\series60skin.skn=emitter/skin/series60skin.skn"]),
     "aknskinrenderlib": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinRenderLib.mmp", flags=["-U__MARM_ARMV5__"]),
     "aknicon": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIcon.mmp", rtti=True),
     "akniconsrv": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIconSrvMain.mmp"),

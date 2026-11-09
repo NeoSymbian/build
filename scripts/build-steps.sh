@@ -33,6 +33,8 @@ step casefix python3 tools/casefix.py
 step features-dat python3 tools/features_dat.py emitter/features.dat
 # Central Repository files for repositories that ship only as .crml (emitter/cenrep/<uid>.txt)
 step cenrep-crml python3 tools/crml2txt.py
+# the default skin package (the skin descriptor compiler built for the host; our artwork where the release has none)
+step skin python3 tools/skin_gen.py
 step fileserver-objects bash kernel/build_efile.sh
 step efsrv python3 emitter/build_efsrv_device.py
 step hal python3 emitter/build_hal_device.py

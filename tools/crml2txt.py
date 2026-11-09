@@ -17,6 +17,8 @@ OUT = os.path.join(REPO, "emitter", "cenrep")
 CRMLS = [
     # KCRUidThemes: the skin server (CAknsSrvSettings) opens it at start-up
     "oss.FCL.sf.mw.classicui/psln/conf/themes_102818E8.crml",
+    # KCRUidThemesVariation: the skin server reads its local variation when it starts the animated background
+    "oss.FCL.sf.mw.classicui/psln/conf/themes_102818EB.crml",
 ]
 ZERO = {
     "int": "0",

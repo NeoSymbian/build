@@ -34,6 +34,21 @@ jobs:
           print("screen has content")
           PY
 
+      - name: The AArch64 kernel for QEMU virt, with this user side
+        run: KERNEL=src/oss.FCL.sf.os.kernelhwsrv ./neo kernel qemu
+
+      # debug access (docs debug-access.md): fshell on the second serial port, driven from the host
+      - name: fshell over the debug serial port (ls, hash, ps, exit status, YMODEM round trip)
+        shell: bash
+        run: |
+          set -o pipefail
+          . ./images.sh
+          K=$PWD/src/oss.FCL.sf.os.kernelhwsrv
+          docker run --rm --user "$(id -u):$(id -g)" -v "$K:/kernel" -w /kernel/baseport/arm64/tools \
+            -e OUT=/kernel/out/ekern-qemu "$BUILD_IMAGE" python3 test-fshell-qemu.py 300 | tee out/fshell-qemu.log
+          grep -q '^test-fshell-qemu: PASS$' out/fshell-qemu.log
+          cp "$K/out/ekern-qemu/serial.log" out/fshell-qemu-serial.log
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -43,3 +58,5 @@ jobs:
             out/serial.log
             out/log/
             out/qemu-monitor.log
+            out/fshell-qemu.log
+            out/fshell-qemu-serial.log

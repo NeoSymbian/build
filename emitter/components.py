@@ -206,6 +206,8 @@ COMPONENTS = {
     # --- the legacy GUI apps ---
     # ours: a 2010 GUI program inside neoui -- the guest window server bridge (apps/legacy/legacy.cpp)
     "legacy": dict(mmp="../apps/legacy/legacy.mmp"),
+    # NeoSymbian: the debug serial port test (NeoSymbian/kernel T5; tools/test-serial-qemu.py runs it)
+    "neocom": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kerneltest/e32test/arm64/t_a64_serial.mmp"),
     "perfmon": dict(mmp="oss.FCL.sf.app.rndtools/perfmon/group/perfmon.mmp"),
     # --- the 3-DLL locale (SYMBIAN_DISTINCT_LOCALE_MODEL): from uiresources master (BRANCH_RCL_3 has no loce32) ---
     "elocl_language_en_gb": dict(
@@ -216,6 +218,11 @@ COMPONENTS = {
     "elocl_collation_en": dict(
         mmp="oss.FCL.sf.mw.uiresources@master/locales/loce32/collation/group/elocl_collation_en.mmp", rom="elocl_col.001"),
 }
+
+# fshell, the debug-access text shell (NeoSymbian/fshell; emitter/fshell_components.py)
+from fshell_components import COMPONENTS as FSHELL_COMPONENTS  # noqa: E402
+
+COMPONENTS.update(FSHELL_COMPONENTS)
 
 
 def rom_name(key: str, targettype: str = "dll") -> str:

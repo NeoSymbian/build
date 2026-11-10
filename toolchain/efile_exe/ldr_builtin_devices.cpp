@@ -26,6 +26,8 @@ static TBool DeviceInstalled(const TDesC8& aFileName, TBool aPhysical)
 	static const struct { const char* iFile; const char* iDevice; } KAliases[] =
 		{
 		{ "display0", "displaychannel" },		// display.cpp: DDisplayLddFactory::Install -> RDisplayChannel::Name()
+		{ "ecomm", "Comm" },					// the serial LDD (kernel common/specific/a64_ecomm.cpp): ECOMM is "Comm"
+		{ "euart1", "Comm" },					// a serial PDD: "Comm.<variant>" (QEMU: Comm.PL011)
 		};
 	for (TUint i = 0; i < sizeof(KAliases) / sizeof(KAliases[0]); ++i)
 		if (name.CompareF(TPtrC8((const TUint8*)KAliases[i].iFile)) == 0)

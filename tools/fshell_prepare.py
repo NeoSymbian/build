@@ -39,6 +39,8 @@ def main():
     (generated / 'fshell_version.cpp').write_bytes(result.stdout.replace(b'\r', b''))
     sys.path.insert(0, str(REPO / 'emitter'))
     import components
+    if not components.COMPONENTS['fshell']['rom_data']:
+        raise SystemExit('no fshell command descriptions (src/' + PACKAGE + '/core/builtins/*.cif)')
     for spec in components.COMPONENTS['fshell']['rom_data']:
         if not (REPO / spec.split('=', 1)[1]).is_file():
             raise SystemExit('required command description is absent: ' + spec)

@@ -3,6 +3,8 @@
 components.py's registry: its libraries, consoles and the commands we use. No c32 and no memoryaccess LDD
 (toolchain/fshell/platform.mmh turns them off).
 """
+import os
+
 F = 'oss.FCL.sf.os.fshell'
 COMPONENTS = {
     'hash': dict(mmp='oss.FCL.sf.os.security/crypto/weakcrypto/group/hash.mmp'),
@@ -29,8 +31,8 @@ COMPONENTS = {
                      rom_data=[f'resource\\cif\\fshell\\base64.cif=src/{F}/commands/base64/base64.cif']),
 }
 
+# every builtin's command description (.cif): fshell needs it to run the builtin (export, var, ... fail without)
+_BUILTINS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", F, "core", "builtins")
 COMPONENTS['fshell']['rom_data'] = [
-    f'resource\\cif\\fshell\\{name}.cif=src/{F}/core/builtins/{name}.cif'
-    for name in ('fshell', 'help', 'exit', 'ls', 'cd', 'echo', 'mkdir', 'rmdir',
-                 'cp', 'mv', 'rm', 'ymodem', 'xmodem', 'version', 'error',
-                 'kill', 'ps', 'jobs', 'fg', 'bg', 'sleep')]
+    f'resource\\cif\\fshell\\{name}=src/{F}/core/builtins/{name}'
+    for name in (sorted(n for n in os.listdir(_BUILTINS) if n.endswith(".cif")) if os.path.isdir(_BUILTINS) else [])]

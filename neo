@@ -27,7 +27,7 @@ cmd=${1:-help}; [ $# -gt 0 ] && shift
 kdocker() {	# kdocker <script> [args]: run a kernel tool in the image, the kernel tree at /kernel, the user side at /s2010
 	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"
 	env=""
-	for v in USERSIDE AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_INSTALL VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
+	for v in USERSIDE AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_INSTALL TEL_DIAGNOSTICS VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
 		eval "val=\${$v:-}"; [ -n "$val" ] && env="$env -e $v=$val"
 	done
 	dtb=${DTB:-${BONITO_DTB:-}}; dmount=""

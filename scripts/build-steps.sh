@@ -24,7 +24,17 @@ step kernel-ekern bash kernel/build_ekern.sh
 step euser python3 emitter/build_euser_device.py
 # the epoc32/include tree the userland mmps #include (abld export equivalent)
 step epoc32-export python3 tools/epoc32_export.py
+# the icon-ID headers (<x>.mbg) S60 sources include, which the mifconv build step emitted
+step mbg python3 tools/mbg.py
+# the S60 CDL client headers no bld.inf exports (mifheader.cdl.h ...): CdlCompiler from mw.uitools, built for the host
+step cdl-headers python3 tools/cdl_headers.py
 step casefix python3 tools/casefix.py
+# the Feature Manager's ROM database (Z:\\private\\10205054\\features.dat): S60 features on iff the variant defines them
+step features-dat python3 tools/features_dat.py emitter/features.dat
+# Central Repository files for repositories that ship only as .crml (emitter/cenrep/<uid>.txt)
+step cenrep-crml python3 tools/crml2txt.py
+# the default skin package (the skin descriptor compiler built for the host; our artwork where the release has none)
+step skin python3 tools/skin_gen.py
 step fileserver-objects bash kernel/build_efile.sh
 step efsrv python3 emitter/build_efsrv_device.py
 step hal python3 emitter/build_hal_device.py

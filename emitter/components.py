@@ -219,6 +219,11 @@ COMPONENTS = {
         mmp="oss.FCL.sf.mw.uiresources@master/locales/loce32/collation/group/elocl_collation_en.mmp", rom="elocl_col.001"),
 }
 
+# fshell, the debug-access text shell (NeoSymbian/fshell; emitter/fshell_components.py)
+from fshell_components import COMPONENTS as FSHELL_COMPONENTS  # noqa: E402
+
+COMPONENTS.update(FSHELL_COMPONENTS)
+
 
 def rom_name(key: str, targettype: str = "dll") -> str:
     c = COMPONENTS[key]

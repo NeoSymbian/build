@@ -16,7 +16,7 @@
 #
 # BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito). KERNEL = the kernel checkout
 # (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
-# USERSIDE, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_INSTALL, VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE. SCREEN=WxH sizes `boot`/`live`.
+# USERSIDE, USBDEBUG (fshell on a second USB port), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_INSTALL, VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE. SCREEN=WxH sizes `boot`/`live`.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 . "$HERE/images.sh"
@@ -27,7 +27,7 @@ cmd=${1:-help}; [ $# -gt 0 ] && shift
 kdocker() {	# kdocker <script> [args]: run a kernel tool in the image, the kernel tree at /kernel, the user side at /s2010
 	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"
 	env=""
-	for v in USERSIDE AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_INSTALL VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
+	for v in USERSIDE USBDEBUG USERROM_SKIP AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_INSTALL VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
 		eval "val=\${$v:-}"; [ -n "$val" ] && env="$env -e $v=$val"
 	done
 	dtb=${DTB:-${BONITO_DTB:-}}; dmount=""

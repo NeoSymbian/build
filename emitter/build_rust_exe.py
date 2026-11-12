@@ -36,7 +36,9 @@ CDRIVE_ARGS = os.path.join(HERE, "rust_cdrive.args")
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
 UID2 = 0
-STACK_SIZE, HEAP_MIN, HEAP_MAX = 0x8000, 0x1000, 0x100000
+# 128 KB stack: Slint builds and lays out a page recursively; SYSSTART overflowed 32 KB opening Settings -> Display
+# (KERN-EXEC 3 on the phone, 2026-11-11)
+STACK_SIZE, HEAP_MIN, HEAP_MAX = 0x20000, 0x1000, 0x100000
 
 ENTRY_NAME = "_E32Startup"
 EE = os.path.join(REPO, "toolchain", "efile_exe")

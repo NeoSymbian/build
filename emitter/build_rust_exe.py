@@ -11,7 +11,7 @@ EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp
 .def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name>, emitter/rust_rom.args (the
 --xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
 image: Sys/Bin/<NAME>=emitter/<name>.exe per line). `stack=` sets the main thread's stack (default 128 KB, for Slint;
-the 2010 moving memory model on Syborg refuses more than 80 KB, so a program meant to run there asks for less).
+both kernels take up to 1 MB: Syborg's multiple memory model refused more than 80 KB before kernel 9641bd04).
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]
 """
@@ -87,7 +87,9 @@ def _link(
     subprocess.run(args, check=True)
 
 
-def parse_manifest(path: str) -> list[tuple[str, int, str | None, str | None, str, int]]:
+def parse_manifest(
+    path: str,
+) -> list[tuple[str, int, str | None, str | None, str, int]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -100,7 +102,9 @@ def parse_manifest(path: str) -> list[tuple[str, int, str | None, str | None, st
         drive = opts.pop("drive", "z").lower()
         stack = int(opts.pop("stack", str(STACK_SIZE)), 0)
         if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c"):
-            sys.exit(f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES]")
+            sys.exit(
+                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES]"
+            )
         name, uid3 = f[0], int(f[1], 0)
         lib = None if f[2] == "-" else os.path.join(RUST_DIR, f[2])
         stem, _, ext = name.partition(".")
@@ -118,7 +122,12 @@ def parse_manifest(path: str) -> list[tuple[str, int, str | None, str | None, st
 
 
 def build_one(
-    name: str, uid3: int, lib: str | None, glue: str | None, runtime: list[str], stack: int = STACK_SIZE
+    name: str,
+    uid3: int,
+    lib: str | None,
+    glue: str | None,
+    runtime: list[str],
+    stack: int = STACK_SIZE,
 ) -> bool:
     stem = name.split(".")[0].lower()
     workdir = BE.workdir("rust_" + stem)
@@ -203,7 +212,8 @@ def main() -> int:
         for s in RUNTIME_SOURCES
     ]
     results = [  # build every EXE even when one fails its check
-        build_one(name, uid3, lib, glue, runtime, stack) for name, uid3, lib, glue, _, stack in exes
+        build_one(name, uid3, lib, glue, runtime, stack)
+        for name, uid3, lib, glue, _, stack in exes
     ]
     ok = all(results)
 

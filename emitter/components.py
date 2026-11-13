@@ -206,6 +206,9 @@ COMPONENTS = {
     # --- the legacy GUI apps ---
     # ours: a 2010 GUI program inside neoui -- the guest window server bridge (apps/legacy/legacy.cpp)
     "legacy": dict(mmp="../apps/legacy/legacy.mmp"),
+    # ours: NeoNet's C++ client (apps/neonet/neonet.h) for 2010-style programs and ESOCK, and its phone test
+    "neonet": dict(mmp="../apps/neonet/neonet.mmp"),
+    "neonett": dict(mmp="../apps/neonet/neonett.mmp"),
     # NeoSymbian: the debug serial port test (NeoSymbian/kernel T5; tools/test-serial-qemu.py runs it)
     "neocom": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kerneltest/e32test/arm64/t_a64_serial.mmp"),
     "perfmon": dict(mmp="oss.FCL.sf.app.rndtools/perfmon/group/perfmon.mmp"),
@@ -223,6 +226,11 @@ COMPONENTS = {
 from fshell_components import COMPONENTS as FSHELL_COMPONENTS  # noqa: E402
 
 COMPONENTS.update(FSHELL_COMPONENTS)
+
+# ESOCK over NeoNet (docs wifi.md W5a/W7; emitter/comms_components.py)
+from comms_components import COMPONENTS as COMMS_COMPONENTS  # noqa: E402
+
+COMPONENTS.update(COMMS_COMPONENTS)
 
 
 def rom_name(key: str, targettype: str = "dll") -> str:

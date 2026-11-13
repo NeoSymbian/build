@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// NEONETT.EXE -- NEONET.DLL's test on the phone (docs wifi.md W7): see neonett.cpp.
+
+TARGET          neonett.exe
+TARGETTYPE      exe
+UID             0x100039CE 0xE0004003
+SOURCEPATH      .
+SOURCE          neonett.cpp
+USERINCLUDE     .
+
+#include <platform_paths.hrh>
+OS_LAYER_SYSTEMINCLUDE
+
+LIBRARY         euser.lib neonet.lib

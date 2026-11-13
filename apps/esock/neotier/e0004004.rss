@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+// NEOTIER.DLL's ECom registration (neotier.cpp): the tier manager and the MCPR.
+#include <ecom/registryinfo.rh>
+
+RESOURCE REGISTRY_INFO theInfo
+	{
+	dll_uid = 0xE0004004;
+	interfaces =
+		{
+		INTERFACE_INFO
+			{
+			interface_uid = 0x10281DD7;		// tier manager factories
+			implementations =
+				{
+				IMPLEMENTATION_INFO
+					{
+					implementation_uid = 0x0E004005;
+					version_no = 1;
+					display_name = "NeoNet Tier Manager";
+					default_data = "NeoNetTierManager";
+					opaque_data = "";
+					}
+				};
+			},
+		INTERFACE_INFO
+			{
+			interface_uid = 0x10274546;		// MCPR factories
+			implementations =
+				{
+				IMPLEMENTATION_INFO
+					{
+					implementation_uid = 0x0E004006;
+					version_no = 1;
+					display_name = "NeoNet MCPR";
+					default_data = "NeoNetMCpr";
+					opaque_data = "";
+					}
+				};
+			}
+		};
+	}

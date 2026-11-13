@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# ESOCK's protocols over NeoNet (docs wifi.md W5a): KAfInet TCP and UDP, both with name resolution, from NEONET.PRT.
+# Read by the IP data thread (esock_dip.cmi: EskMask IP.*.ESK).
+
+[sockman]
+protocols= tcp,udp
+
+[tcp]
+filename= neonet.prt
+index= 1
+
+[udp]
+filename= neonet.prt
+index= 2

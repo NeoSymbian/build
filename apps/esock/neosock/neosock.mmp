@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+// NEOSOCK.EXE -- ESOCK over NeoNet through the 2010 socket API (docs wifi.md W5a): see neosock.cpp.
+
+TARGET          neosock.exe
+TARGETTYPE      exe
+UID             0x100039CE 0xE0004009
+SOURCEPATH      .
+SOURCE          neosock.cpp
+USERINCLUDE     ../../neonet
+
+#include <platform_paths.hrh>
+OS_LAYER_SYSTEMINCLUDE_SYMBIAN
+
+LIBRARY         euser.lib esock.lib insock.lib neonet.lib
+CAPABILITY      NetworkServices

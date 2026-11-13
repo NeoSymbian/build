@@ -6,9 +6,14 @@ cd "$(dirname "$0")/.."
 mkdir -p out/log
 LOG=out/log
 
+# NeoSymbian: a prebuilt base for this commit (ghcr.io/neosymbian/userside-base, written by build-in-container.sh
+# with BASE_OUT=1) already holds every step up to eshell; then only the Rust EXEs, the ROM and C: are built
+PREBUILT=""
+[ "$(cat .base 2>/dev/null)" != "${NEO_BUILD_REV:-none}" ] || PREBUILT=1
 N=0
 step() {	# step <name> <command...> : run, log, stop on failure
 	N=$((N+1)); local name="$1"; shift
+	if [ -n "$PREBUILT" ]; then echo "[$N] $name (prebuilt base)"; return; fi
 	local log; log=$(printf '%s/%02d-%s.log' "$LOG" "$N" "$name")
 	echo "[$N] $name"; local t0=$SECONDS
 	if "$@" > "$log" 2>&1; then echo "    ok ($((SECONDS-t0)) s)"; else
@@ -51,6 +56,7 @@ step erofs-fsy python3 emitter/build_elocal_fsy.py emitter/erofs.fsy --fs erofs
 step ecomp-fsy python3 emitter/build_elocal_fsy.py emitter/ecomp.fsy --fs ecomp
 step ekdata python3 emitter/build_ekdata_dll.py
 step eshell python3 emitter/build_eshell_exe.py
+PREBUILT=""
 # NeoSymbian: the Rust EXEs (NeoSymbian/e32-rs) listed in rust/exes.txt go into the ROM (Z:\sys\bin, through
 # emitter/rust_rom.args) or, marked drive=c, onto C:\sys\bin (emitter/rust_cdrive.args); without the manifest the
 # build is unchanged.

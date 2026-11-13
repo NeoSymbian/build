@@ -23,6 +23,13 @@ rm -rf /build/rust
 cd /build
 rc=0
 bash scripts/build-steps.sh || rc=$?
+# BASE_OUT=1 (CI on main): the built state without the sources, the Rust EXEs and out/ -> /work/base, the prebuilt base
+# that lets a build of this same commit skip every step up to eshell (build-steps.sh)
+if [ "$rc" = 0 ] && [ -n "${BASE_OUT:-}" ]; then
+	echo "${NEO_BUILD_REV:-}" > /build/.base
+	rm -rf /work/base && mkdir -p /work/base
+	tar -C /build --exclude=./src --exclude=./rust --exclude=./out --exclude=./.stamp -cf - . | tar -C /work/base -xf -
+fi
 mkdir -p /work/out
 rm -rf /work/out/log
 cp -a /build/out/. /work/out/

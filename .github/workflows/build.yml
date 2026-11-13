@@ -15,14 +15,18 @@ jobs:
   minigui:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write     # the prebuilt base (below)
     steps:
       - uses: actions/checkout@v4
 
       - name: Fetch the Symbian sources
         run: ./fetch.sh
 
+      # on main, also the prebuilt base (base/): neoui's and e32-rs's CI pull it and build only their EXEs and the ROM
       - name: Build the ROM
-        run: ./build.sh
+        run: BASE_OUT=${{ github.event_name == 'push' && '1' || '' }} ./build.sh
 
       - name: Boot it on QEMU Syborg
         run: ./boot.sh
@@ -39,6 +43,17 @@ jobs:
           assert len(set(pix[i:i + 3] for i in range(0, len(pix), 3))) >= 2, "screen is blank"
           print("screen has content")
           PY
+
+      # the 2010 user side without sources or ROM: EPL-1.0 Symbian binaries only (no Slint), its sources public
+      - name: Publish the prebuilt base (ghcr.io/neosymbian/userside-base:<commit>)
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          t=ghcr.io/neosymbian/userside-base:${{ github.sha }}
+          printf 'FROM busybox:1.36.1\nLABEL org.opencontainers.image.source=https://github.com/NeoSymbian/build\nCOPY . /base\n' |
+            docker build -q -t "$t" -f - base
+          docker push -q "$t"
+          echo "prebuilt base: $t ($(du -sh base | cut -f1))" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: The AArch64 kernel for QEMU virt, with this user side
         run: KERNEL=src/oss.FCL.sf.os.kernelhwsrv ./neo kernel qemu

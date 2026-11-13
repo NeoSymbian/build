@@ -100,6 +100,8 @@ class Extracted:
     # word becomes an E32 import slot (ordinal | addend<<16), NOT a text reloc.
     data_import_sites: dict[str, list] = field(default_factory=dict)
     code_align: int = 4
+    # code offset of the TExceptionDescriptor appended after .ARM.exidx (0: the image has no unwind tables)
+    exception_desc: int = 0
     data_align: int = 4
 
 
@@ -196,6 +198,23 @@ def extract(blob: bytes, data_imports=frozenset()) -> Extracted:
 
     code_base = text.addr
     code_bytes = text.data
+    # The unwind tables (.ARM.exidx, its own output section right after .text so ld sorts it): appended to the code,
+    # then a TExceptionDescriptor (e32def_private.h: exidx base/limit, RO segment base/limit) -- four TEXT relocs, so
+    # the loader and rombuild relocate it like any pointer. The header's iExceptionDescriptor points at it; drtaeabi's
+    # unwinder finds a frame's table through UserSvr::ExceptionDescriptor (old RVCT binaries' TRAPs unwind through us).
+    exidx = elf.section(".ARM.exidx")
+    desc_words: list[int] = []
+    linked_code_end = code_base + len(code_bytes)
+    if exidx and exidx.size:
+        gap = exidx.addr - (code_base + len(code_bytes))
+        if not 0 <= gap < 64:
+            raise ValueError(f".ARM.exidx at 0x{exidx.addr:X} does not follow .text (gap {gap})")
+        code_bytes = code_bytes + bytes(gap) + exidx.data
+        code_bytes += bytes(-len(code_bytes) % 4)
+        linked_code_end = code_base + len(code_bytes)
+        desc_words = [len(code_bytes) + 4 * i for i in range(4)]
+        end = code_base + len(code_bytes) + 16
+        code_bytes += struct.pack("<4I", exidx.addr, exidx.addr + exidx.size, code_base, end)
     data_bytes = data.data if data else b""
     bss_size = bss.size if bss else 0
     # The E32Image has only iDataSize + iBssSize: the loader zero-fills bss RIGHT AFTER the data. When
@@ -215,8 +234,9 @@ def extract(blob: bytes, data_imports=frozenset()) -> Extracted:
     else:
         data_base = 0
 
-    # Which VMA range is code vs data — to pick the delta selector per reloc.
-    code_lo, code_hi = code_base, code_base + len(code_bytes)
+    # Which VMA range is code vs data — to pick the delta selector per reloc. Up to the linked code's end: the
+    # descriptor appended after the unwind tables has no ELF address (its bytes' VMAs are .data's)
+    code_lo, code_hi = code_base, linked_code_end
     data_lo = data_base
     data_hi = (bss.addr + bss.size) if bss else (data_base + (data.size if data else 0))
 
@@ -226,6 +246,10 @@ def extract(blob: bytes, data_imports=frozenset()) -> Extracted:
                     data_align=max(data.addralign if data else 1,
                                    bss.addralign if bss else 1, 4))
     ext.symbols = {s.name: s.value for s in elf.symbols if s.name}
+    if desc_words:
+        ext.exception_desc = desc_words[0]
+        ext.code_relocs += desc_words
+        ext.code_reloc_types.update(dict.fromkeys(desc_words, RELOC_TEXT))
 
     def classify(value: int) -> int:
         if code_lo <= value < code_hi:
@@ -270,6 +294,9 @@ def extract(blob: bytes, data_imports=frozenset()) -> Extracted:
             # S lives. Section symbols carry the section VMA, so they classify
             # the same way. Fall back to the stored word only if S is 0.
             s_val = elf.symbols[r.sym].value if r.sym < len(elf.symbols) else 0
+            if sym is not None and sym.name in ("__exidx_start", "__exidx_end"):
+                type_map[off] = RELOC_TEXT     # the unwind index's bounds: __exidx_end is the code's end exactly
+                continue
             type_map[off] = classify(s_val or stored)
 
     # A writable segment whose alignment (a page-aligned .bss) exceeds its start's offset: the loader places data at a

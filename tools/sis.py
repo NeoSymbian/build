@@ -434,7 +434,13 @@ def main():
                 f"{base_name(dll):28} {len(ords):4} imports, max ordinal {max(ords, default=0)}"
             )
     elif a[0] == "install":
-        print("\n".join(install(a[1:], os.path.join(REPO, ".sis-build"))))
+        specs = install(a[1:], os.path.join(REPO, ".sis-build"))
+        print("\n".join(specs))
+        # the same files in the ROM (Z:) too: the phone keeps its own eMMC C:, so there only Z: carries them
+        with open(os.path.join(REPO, "emitter", "sis_rom.args"), "w") as fh:
+            for spec in specs:
+                z, host = spec.split("=", 1)
+                fh.write(f"--data\n{z.replace('/', chr(92))}={host}\n")
     elif a[0] == "check":
         rom = (
             a[a.index("--rom") + 1]

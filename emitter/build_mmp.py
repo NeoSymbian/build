@@ -278,11 +278,14 @@ def build(key: str, rsc_only: bool = False) -> int:
     rtti = comp.get("rtti", False)
     if rtti:
         flags.append("-frtti")
-    env = dict(os.environ, SYMCC_ARM="1")
+    env = dict(os.environ, SYMCC_ARM="1", SYMCC_UNWIND="1")
     drop = {d.lower() for d in comp.get("drop", [])}
     srcs = [] if comp.get("nosrc") else [s for s in m.sources if os.path.basename(s).lower() not in drop]
     srcs += [os.path.join(REPO, e) for e in comp.get("extra", [])]
-    rt = [GCCHELP, os.path.join(RT, "dll_crt.cpp"), os.path.join(BE.ED, "unimpl_export.cpp")]
+    rt = [*([] if comp.get("no_gcchelp") else [GCCHELP]), os.path.join(RT, "dll_crt.cpp"),
+          os.path.join(BE.ED, "unimpl_export.cpp")]
+    if not comp.get("unwinder"):     # drtaeabi exports libgcc's real personality routines
+        rt.append(os.path.join(RT, "unwind_markers.cpp"))
     if not m.is_exe:
         # edllstub.lib (every DLL links it): the REAL Dll::Tls/SetTls/FreeTls + Dll::FileName
         rt += [os.path.join(BE.B, "euser", "epoc", "up_dll_tls.cpp"),
@@ -369,6 +372,8 @@ def build(key: str, rsc_only: bool = False) -> int:
         print("  ! no .def found -- DLL would export nothing")
         return 1
     defined = BE._nm("--defined-only", *objs)
+    if comp.get("export_archives"):     # drtaeabi/dfpaeabi: the runtime's exports live in the archives (-u pulls them)
+        defined |= BE._nm("--defined-only", *([_libsupcxx()] if rtti else []), BE._libgcc())
     exportable = sorted(set(defmap.by_ordinal.values()) & defined) if defmap else []
     # .def names in RVCT's spelling of an extern "C" function type: alias them to GCC's symbol (--defsym below)
     y_alias = {n: gcc_mangled(n) for n in (defmap.by_ordinal.values() if defmap else [])
@@ -497,7 +502,7 @@ def build(key: str, rsc_only: bool = False) -> int:
                     imports=import_list, code_relocs=ext.code_relocs, code_base=ext.code_base,
                     data=ext.data, data_base=ext.data_base, bss_size=ext.bss_size,
                     data_relocs=ext.data_relocs, code_reloc_types=ext.code_reloc_types,
-                    data_reloc_types=ext.data_reloc_types, **kw)
+                    data_reloc_types=ext.data_reloc_types, exception_desc=ext.exception_desc, **kw)
     out_path = os.path.join(HERE, rom)
     with open(out_path, "wb") as fh:
         fh.write(img)

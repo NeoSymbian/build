@@ -14,12 +14,17 @@ Fields:
     allow_wsd   True to accept writable static data in a DLL
     rsc_only    True: build the mmp's resources only (no image)
     rom_data    data files the component needs in the ROM: ["Z path=repo-relative file", ...] (kernel/rom_args.py)
+    export_archives  True: .def names the archives (libgcc, libsupc++ with rtti) define are exported too
+    unwinder    True: links libgcc's real EHABI personality routines (drtaeabi), not toolchain/dll_rt/unwind_markers.cpp
+    no_gcchelp  True: without the kernel's gcchelp.cpp (its per-image operator new/delete): scppnwdl, which is them
 
 BUILTIN: providers built by their own scripts (euser/efsrv/hal/efile).
 """
 import os
 
 import devlink
+
+KCS = "oss.FCL.sf.os.kernelhwsrv/kernel/eka/compsupp"   # the C++ run-time support (.defs, scppnwdl)
 
 G = "oss.FCL.sf.os.graphics"
 OSSRV = "oss.FCL.sf.os.ossrv"
@@ -206,6 +211,13 @@ COMPONENTS = {
     # --- the legacy GUI apps ---
     # ours: a 2010 GUI program inside neoui -- the guest window server bridge (apps/legacy/legacy.cpp)
     "legacy": dict(mmp="../apps/legacy/legacy.mmp"),
+    # the C++ run time RVCT-built binaries (old .sis apps) import: ours from GCC's runtime under RVCT's ordinals
+    # (apps/rt), and the release's operator new/delete
+    "drtaeabi": {"mmp": "../apps/rt/drtaeabi.mmp", "def": f"{KCS}/eabi/drtaeabiu.def", "rtti": True,
+                 "allow_wsd": True, "export_archives": True, "unwinder": True},
+    "dfpaeabi": {"mmp": "../apps/rt/dfpaeabi.mmp", "def": f"{KCS}/eabi/dfpaeabiu.def", "export_archives": True},
+    "scppnwdl": dict(mmp=f"{KCS}/symcpp/scppnwdl.mmp",      # std::nothrow_t: RVCT's prefix header included this
+                     flags=["-include", os.path.join(REPO, "src", KCS, "symcpp", "symcpp.h")], no_gcchelp=True),
     # ours: NeoNet's C++ client (apps/neonet/neonet.h) for 2010-style programs and ESOCK, and its phone test
     "neonet": dict(mmp="../apps/neonet/neonet.mmp"),
     "neonett": dict(mmp="../apps/neonet/neonett.mmp"),

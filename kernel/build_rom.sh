@@ -74,6 +74,8 @@ printf 'rom %s build %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "${NEO_BUILD_REV:-unkno
     --xinfo 'databss=0x00400000,cap1=0xFFFFFFFF,cap2=0xFFFFFFFF'
   # NeoSymbian: the Rust EXEs of rust/exes.txt (emitter/build_rust_exe.py writes their --xip lines)
   [ ! -f emitter/rust_rom.args ] || cat emitter/rust_rom.args
+  # NeoSymbian: the files of old .sis packages (SIS=..., tools/sis.py), as plain files on Z:
+  [ ! -f emitter/sis_rom.args ] || cat emitter/sis_rom.args
   python3 kernel/rom_args.py
 } > "$ARGS"
 python3 tools/rombuild.py .bootstrap-build/boot.bin out/minigui.rom --primary "$O/ekern.bin" \

@@ -24,5 +24,6 @@ __pycache__/
 /emitter/rust_rom.args
 /emitter/rust_cdrive.args
 /emitter/sis_cdrive.args
+/emitter/sis_rom.args
 /.sis-cache/
 /.sis-build/

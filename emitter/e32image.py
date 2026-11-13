@@ -307,7 +307,8 @@ def build_dll(code: bytes, exports: list[int], *,
               code_reloc_types=None, data_reloc_types=None,
               exe: bool = False, stack_size: int | None = None,
               heap_min: int | None = None, heap_max: int | None = None,
-              priority: int | None = None, module_version: int = 0x000A0000) -> bytes:
+              priority: int | None = None, module_version: int = 0x000A0000,
+              exception_desc: int = 0) -> bytes:
     """Assemble a DLL E32Image with an export table.
 
       * uid1 = UID1_DLL (0x10000079); the UID checksum is recomputed from it.
@@ -418,6 +419,8 @@ def build_dll(code: bytes, exports: list[int], *,
     hdr.data_reloc_offset = data_reloc_offset
     hdr.export_dir_offset = export_dir_offset if exports else 0
     hdr.export_dir_count = len(exports)
+    # iExceptionDescriptor: the descriptor's code offset | 1 (elf.extract appends it after the unwind tables)
+    hdr.exception_des = (exception_desc | 1) if exception_desc else 0
 
     body = bytearray()
     body += hdr.pack()

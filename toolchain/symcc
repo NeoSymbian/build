@@ -16,8 +16,11 @@ KERNEL=0
 if [ "${1:-}" = "-k" ]; then KERNEL=1; shift; fi
 SRC="$1"; shift
 # user side: -fstack-reuse=named_vars -- `TPckg<T> p(x.Id()); SendReceive(.., &p)` keeps the ADDRESS of a dead
-# temporary; RVCT left such slots alone, GCC reuses them
+# temporary; RVCT left such slots alone, GCC reuses them.
 USERFLAGS=(); [ "$KERNEL" = 1 ] || USERFLAGS=(-fstack-reuse=named_vars)
+# SYMCC_UNWIND=1 (euser, the mmp components): unwind tables (no exceptions of our own), so an old RVCT binary's TRAP
+# -- a C++ catch -- can unwind a leave through our frames; the image links toolchain/dll_rt/unwind_markers.cpp
+[ "$KERNEL" = 1 ] || [ -z "${SYMCC_UNWIND:-}" ] || USERFLAGS+=(-funwind-tables)
 
 DEFS=(-D__SYMBIAN32__ -D__GCCE__ -D__EABI__ -D__MARM__ -D__MARM_ARMV5__ -D__EPOC32__ -D_UNICODE)
 # Deliberately NO -D__GCC32__ (see toolchain/symbian_gcc_prefix.h).

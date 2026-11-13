@@ -2,8 +2,14 @@ name: build
 
 on:
   push:
+    branches: [main]     # a PR branch builds once, as its pull_request
   pull_request:
   workflow_dispatch:
+
+# a newer push to the same PR (or main) cancels the build still running for the older one
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   minigui:

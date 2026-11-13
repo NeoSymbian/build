@@ -39,6 +39,9 @@ DEFAULT_PKGS = [
     "oss.FCL.sf.os.cellularsrv", "oss.FCL.sf.mw.phonesrv", "oss.FCL.sf.mw.usbservices",
 ]
 SKIP_DIRS = {"test", "tsrc", "tests", "documentation", "examples", "internal"}
+# the pre-zero-copy MBuf manager: commsbufs/group/bld.inf includes it only without SYMBIAN_ZERO_COPY_NETWORKING, and
+# its comms-infras/mbufpanic.h (no EMBuf_IndexOutofRange) overwrote the current one whenever os.walk reached it last
+SKIP_PATHS = {os.path.join(BASE, "oss.FCL.sf.os.commsfw", "commsfwutils", "commsbufs", "version1")}
 SECTION = re.compile(r"^\s*PRJ_(\w+)", re.I)
 
 
@@ -150,7 +153,7 @@ def run(pkgs, old_location):
     n_inf = n_new = n_same = n_missing = 0
     for pkg in pkgs:
         for root, dirs, files in os.walk(os.path.join(BASE, pkg)):
-            dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS and d != ".git"]
+            dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS and d != ".git" and os.path.join(root, d) not in SKIP_PATHS]
             for f in files:
                 if f.lower() != "bld.inf":
                     continue

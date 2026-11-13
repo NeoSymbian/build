@@ -2,9 +2,10 @@
 // LEGACY.EXE -- runs a 2010 Symbian GUI program inside neoui (NeoSymbian P2, the "guest window server").
 //
 // neoui owns the display and the input, so the stock window server cannot. This neoui app:
-//   1. makes the global chunk "NeoUiLegacy" with the display's own geometry (HAL size, stride, first-pixel offset);
-//      the patched screen driver (graphics scnew.cpp) then draws into it, and the patched window server (WSTOP.CPP,
-//      EVENT.CPP) runs as a guest: no display or event-hook ownership;
+//   1. makes the global chunk "NeoUiLegacy": a header with the guest screen's geometry (360x640, the nHD screen the
+//      S60 apps were laid out for; a panel-sized guest also runs the window server out of memory on the phone), then
+//      the pixels. The patched screen driver (graphics scnew.cpp) takes its size from that header and draws there, and
+//      the patched window server (WSTOP.CPP, EVENT.CPP) runs as a guest: no display or event-hook ownership;
 //   2. starts EWSRV.EXE -NoShell and then the program named on its command line (e.g. "grid");
 //   3. shows the guest screen, scaled to fit, in its neoui surface, and turns neoui's taps and keys into raw events
 //      for the guest window server (RWsSession::SimulateRawEvent).
@@ -13,7 +14,6 @@
 #include <e32base.h>
 #include <e32debug.h>
 #include <e32keys.h>
-#include <hal.h>
 #include <w32std.h>
 
 namespace {
@@ -41,6 +41,10 @@ TUint Le32(const TDesC8& aB, TInt aI)
 	}
 
 _LIT(KLegacyChunk, "NeoUiLegacy");
+// the chunk's header, read by scnew.cpp's ScreenHal: magic "NEOL", width, height, stride, offset of the first pixel
+struct TGuestHeader { TUint32 iMagic; TInt32 iWidth, iHeight, iStride, iOffset; };
+const TUint32 KGuestMagic = 0x4C4F454E;
+const TInt KGuestW = 360, KGuestH = 640, KGuestOffset = 32;
 _LIT(KGuestWserv, "EWSRV.EXE");
 _LIT(KNoShell, "-NoShell");
 const TInt KFrameUs = 100000;	// shortcut: the whole frame copied 10 times a second; real damage via SubmitUpdate later
@@ -135,14 +139,10 @@ TInt Run()
 	TFit f;
 	f.iSw = Le32(geo, 0);
 	f.iSh = Le32(geo, 4);
-	TInt mode = 0;
-	HAL::Get(HALData::EDisplayXPixels, f.iW);
-	HAL::Get(HALData::EDisplayYPixels, f.iH);
-	HAL::Get(HALData::EDisplayMode, mode);
-	f.iStride = mode;		// HAL takes the mode in and gives the value back
-	f.iOffset = mode;
-	HAL::Get(HALData::EDisplayOffsetBetweenLines, f.iStride);
-	HAL::Get(HALData::EDisplayOffsetToFirstPixel, f.iOffset);
+	f.iW = KGuestW;
+	f.iH = KGuestH;
+	f.iStride = KGuestW * 4;	// EColor16MA, as the panel's 32-bpp mode
+	f.iOffset = KGuestOffset;
 	f.Compute();
 
 	RChunk guest;
@@ -150,6 +150,8 @@ TInt Run()
 	if ((err = guest.CreateGlobal(KLegacyChunk, size, size)) != KErrNone)
 		return err;
 	Mem::FillZ(guest.Base(), size);
+	const TGuestHeader header = { KGuestMagic, f.iW, f.iH, f.iStride, f.iOffset };
+	Mem::Copy(guest.Base(), &header, sizeof(header));
 	Mem::FillZ(surface.Base(), f.iSw * f.iSh * 4);
 
 	RProcess wserv;

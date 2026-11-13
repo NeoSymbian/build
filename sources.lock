@@ -5,7 +5,7 @@ oss.FCL.sf.os.kernelhwsrv	6bac85c6899abbb2dab1951172b289b4b2e11feb
 oss.FCL.sf.os.ossrv	1e9520caca186c601dd9768449b86bc72be39a22
 oss.FCL.sf.os.persistentdata	ef8baa21cee9cd1e214e1a7986595c60b3a63271
 oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
-oss.FCL.sf.os.graphics	9513de1ba0f5d5abddaf28e2fd54a6caa83764f0
+oss.FCL.sf.os.graphics	0554a2fd7a2db04cccb279f3d4724d25876e0b7a
 oss.FCL.sf.os.devicesrv	ce33ac3d46a302f839e326636a065bd35a6406e4
 oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
 symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd

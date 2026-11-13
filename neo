@@ -4,7 +4,7 @@
 # the host needs Docker (and fastboot for `flash`).
 #
 #   neo fetch                    fetch the pinned 2010 sources into src/            (fetch.sh)
-#   neo rom                      build the 2010 user side + the Syborg ROM           (build.sh)
+#   neo rom                      build the 2010 user side + the Syborg ROM           (build.sh; SIS=a,b adds sis.lock packages on C:)
 #   neo boot                     boot that ROM on QEMU Syborg                        (boot.sh; RUN=, SECS=, SCREEN= ...)
 #   neo kernel [BOARD]           the AArch64 kernel image with the user side         (kernel: build-ekern.sh)
 #   neo nkernsa [BOARD]          the nanokernel test image                           (kernel: build-kernel.sh)

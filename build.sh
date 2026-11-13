@@ -15,5 +15,5 @@ mkdir -p out
 # build info (the ROM's \Resource\NeoSymbian\build.txt): this checkout's commit, +dirty if it differs from it
 REV=$(git rev-parse --short HEAD 2>/dev/null) || REV=unknown
 [ "$REV" = unknown ] || git diff --quiet HEAD -- 2>/dev/null || REV="$REV+dirty"
-exec docker run --rm -e FULL="${FULL:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" -e NEO_BUILD_REV="$REV" \
+exec docker run --rm -e FULL="${FULL:-}" -e SIS="${SIS:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" -e NEO_BUILD_REV="$REV" \
 	-v "$PWD:/work" -v "${BUILD_VOLUME:-neosymbian-build}:/build" -w /work "$IMAGE" bash scripts/build-in-container.sh

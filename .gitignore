@@ -23,3 +23,6 @@ __pycache__/
 .DS_Store
 /emitter/rust_rom.args
 /emitter/rust_cdrive.args
+/emitter/sis_cdrive.args
+/.sis-cache/
+/.sis-build/

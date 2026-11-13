@@ -62,8 +62,16 @@ fi
 step rom bash kernel/build_rom.sh
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
 # RAM path), so the font lives on a non-ROM drive
+# NeoSymbian: the old .sis packages named in SIS (comma-separated sis.lock names), unpacked onto C: as the 2010
+# installer would have put them (tools/sis.py)
+if [ -n "${SIS:-}" ]; then
+	step sis sh -c "python3 tools/sis.py install $(echo "$SIS" | tr , ' ') > emitter/sis_cdrive.args"
+else
+	rm -f emitter/sis_cdrive.args
+fi
 C_EXTRA=""
 [ ! -f emitter/rust_cdrive.args ] || C_EXTRA=$(cat emitter/rust_cdrive.args)
+[ ! -f emitter/sis_cdrive.args ] || C_EXTRA="$C_EXTRA $(cat emitter/sis_cdrive.args)"
 # shellcheck disable=SC2086
 step c-drive python3 tools/mkfat.py out/c_drive.img \
 	"Resource/Fonts/ceurope.gdr=src/oss.FCL.sf.os.graphics/graphicstest/uibench/data/CEUROPE.GDR" $C_EXTRA

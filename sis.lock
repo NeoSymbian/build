@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Old Symbian packages tools/sis.py installs onto C: (`SIS=frozenbubble,xplore ./build.sh`). Not ours, so never
+# committed: fetched by URL into .sis-cache/ and checked against the SHA-256. name  url  sha256
+frozenbubble https://archive.org/download/puzzlestones-installer-1.01-0-606889-mobiles-24/Frozen_Bubble-202018-mobiles24.sisx c651ed3801494c481da4c4db700c05d162aeab8d56f530b819d40d722f77c7f7
+xplore       https://archive.org/download/x-plore_s60_3rd_1_641/x-plore_s60_3rd_1_64%281%29.sisx 283c9a0b952e9f959e44b0138c61397decb165fa0354bab74c54a18a73ae2d5c

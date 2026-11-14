@@ -65,6 +65,7 @@ DEVICE_EXTRA_SOURCES = [
     os.path.join(_EU, "us_ref.cpp"),          # RRefBase (Alloc/Copy/Free)
     os.path.join(_EU, "locmapping.cpp"),      # LocaleMapping: the distinct-locale-model language -> 3-DLL table
     os.path.join(BE.ED, "cxx_rt_dev.cpp"),    # sized operator delete + __cxa_pure_virtual
+    os.path.join(BE.REPO, "toolchain", "dll_rt", "unwind_markers.cpp"),   # unwind tables' personality markers
     # the graphical stack's euser needs: CPolicyServer (fbserv + wserv are policy servers), RMsgQueueBase (ws32/wserv
     # event queues), Power (wserv's power-event handling)
     os.path.join(_EU, "cbase", "ub_polsvr.cpp"),
@@ -133,6 +134,8 @@ def main() -> int:
     workdir = BE.workdir("euser")
 
     defmap = parse_def(BE.DEF_PATH)
+    # unwind tables: an old RVCT binary's TRAP (a C++ catch) unwinds a leave through euser's frames (User::Leave)
+    os.environ["SYMCC_UNWIND"] = "1"
     elf_blob, exportable, stubbed = BE.compile_and_link(
         workdir, sources=DEVICE_SOURCES, fillin=DEVICE_FILLIN,
         extra_flags=_extra_flags)
@@ -185,7 +188,8 @@ def main() -> int:
                     data=ext.data, data_base=ext.data_base, bss_size=ext.bss_size,
                     data_relocs=ext.data_relocs,
                     code_reloc_types=ext.code_reloc_types,
-                    data_reloc_types=ext.data_reloc_types)
+                    data_reloc_types=ext.data_reloc_types,
+                    exception_desc=ext.exception_desc)
     with open(out_path, "wb") as fh:
         fh.write(img)
     print(f"\nWrote {out_path} ({len(img)} bytes)")

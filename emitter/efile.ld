@@ -8,7 +8,7 @@ ENTRY(_E32Startup)
 SECTIONS {
   . = 0x8000;
   .text : {
-    *(.text) *(.text.*) *(.rodata) *(.rodata.*)
+    *(.text) *(.text.*) *(.rodata) *(.rodata.*) *(.ARM.extab*)
     . = ALIGN(4);
     __init_array_start = .;
     KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)))
@@ -24,9 +24,11 @@ SECTIONS {
      link VMA were only 4-aligned the shift would 4-skew all 8-byte-aligned
      objects and the euser atomics' alignment check (ldrexd) faults — seen live
      as a DFSR=1 abort in __e32_atomic_cas_ord64 from RReadWriteLock::ReadLock. */
+  /* NeoSymbian: the unwind index, its own output section so ld sorts it (SHF_LINK_ORDER); elf.extract appends it
+     to the code with a TExceptionDescriptor (C++ exceptions of old RVCT binaries unwind through our frames) */
+  .ARM.exidx : { __exidx_start = .; *(.ARM.exidx*) __exidx_end = .; }
   . = ALIGN(8);
   .data : { *(.data) *(.data.*) }
   .bss  : { *(.bss) *(.bss.*) *(COMMON) }
-  /DISCARD/ : { *(.ARM.attributes) *(.comment) *(.note*)
-                *(.ARM.exidx*) *(.ARM.extab*) }
+  /DISCARD/ : { *(.ARM.attributes) *(.comment) *(.note*) }
 }

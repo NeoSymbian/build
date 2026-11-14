@@ -19,7 +19,22 @@ CRMLS = [
     "oss.FCL.sf.mw.classicui/psln/conf/themes_102818E8.crml",
     # KCRUidThemesVariation: the skin server reads its local variation when it starts the animated background
     "oss.FCL.sf.mw.classicui/psln/conf/themes_102818EB.crml",
+    # KCRUidAknPhysicsSettings: Avkon's kinetic scrolling (missing: on by default, and its engine needs ODE)
+    "oss.FCL.sf.mw.classicui/uifw/AvKon/aknphysics/conf/s60/aknphysics_20021192.crml",
+    # the FEP's settings: AknCapServer sets the hash-key selection there at start-up
+    "oss.FCL.sf.mw.inputmethods/fep/aknfep/conf/aknfep_101F876D.crml",
+    # application orientation: AknCapServer opens it at start-up
+    "oss.FCL.sf.mw.appsupport/contextframework/cfw/conf/contextframework_200159ED.crml",
+    # the skin server: wallpaper configuration and the DRM helper's settings
+    "oss.FCL.sf.mw.uiresources/skins/AknSkins/conf/aknskins_10282CB2.crml",
+    "oss.FCL.sf.mw.drm/omadrm/conf/drm5_10205CA7.crml",
+    # the profiles engine's active-profile settings (Avkon reads tones and vibra there)
+    "oss.FCL.sf.mw.gsprofilesrv/profilesservices/ProfileEngine/conf/profilesengine_101F8798.crml",
 ]
+# board values over a .crml's defaults: {uid: {key: value}}
+OVERRIDES = {
+    "20021192": {0x9: "0"},  # KFeatureEnabled: no kinetic scrolling (ODE, the physics engine, is not built)
+}
 ZERO = {
     "int": "0",
     "real": "0.0",
@@ -40,7 +55,8 @@ def caps(el) -> str:
             out.append(f"sid_{kind}={sid}")
         if cap:
             out.append(f"cap_{kind}={cap.replace(' ', ',')}")
-    return " ".join(out)
+    # CentRepSrv reads a setting's read policy before its write policy (CIniFileIn::ReadSettingL): wr first is corrupt
+    return " ".join(sorted(out, key=lambda p: p.split("_", 1)[1].startswith("wr")))
 
 
 def value(key, typ: str) -> str:
@@ -76,7 +92,8 @@ def convert(crml: str) -> tuple[str, str]:
     for key in root.findall("{*}key"):
         typ = key.get("type", "int")
         k = int(key.get("int") or "0", 16)
-        lines.append(f"0x{k:x} {typ} {value(key, typ)} 0 {caps(key)}".rstrip())
+        v = OVERRIDES.get(f"{uid:08X}", {}).get(k, value(key, typ))
+        lines.append(f"0x{k:x} {typ} {v} 0 {caps(key)}".rstrip())
     return f"{uid:08x}".upper(), "\r\n".join(lines) + "\r\n"
 
 

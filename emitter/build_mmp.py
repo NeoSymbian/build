@@ -110,6 +110,10 @@ def _symcc_cmd(src, env):
         return _SYMCC_CMDS[key]
 
 
+# C++-only options a C translation unit (`c_sources`) leaves out
+_CXX_ONLY = {"-std=gnu++03", "-fno-access-control", "-fno-threadsafe-statics", "-frtti"}
+
+
 def _compile_one(src, obj, flags, env):
     global TOOLCHAIN_REV
     if TOOLCHAIN_REV is None:
@@ -121,7 +125,10 @@ def _compile_one(src, obj, flags, env):
         return src, 0, ""
     # -MMD: <obj>.d = every header this TU read; feeds _deps_newer (a header change recompiles its dependents).
     # g++ directly with symcc's command line (SYMCC_PRINT, cached per flag set): a shell start per TU is slow.
-    r = subprocess.run([*_symcc_cmd(src, env), src, "-O2", "-w", *flags, "-MMD", "-MF", obj + ".d", "-o", obj],
+    lang = []
+    if flags[:1] == ["-xc"]:            # a C source of a `c_sources` component: C, as abld built it
+        lang, flags = ["-x", "c"], flags[1:]
+    r = subprocess.run([*_symcc_cmd(src, env), *lang, src, "-O2", "-w", *flags, "-MMD", "-MF", obj + ".d", "-o", obj],
                        capture_output=True, text=True, errors="replace", env=env, cwd=REPO)
     if r.returncode == 0:
         open(stamp, "w").write(key)
@@ -471,7 +478,12 @@ def build(key: str, rsc_only: bool = False) -> int:
                 with open(wrap, "w") as fh:
                     fh.write(text)
             s = wrap
-        jobs.append((s, obj, flags))
+        if comp.get("c_sources") and s.endswith(".c"):
+            # C, the old dialect (K&R definitions, `typeid` as a name); GCC 14 makes its implicit declarations errors
+            # unless -fpermissive
+            jobs.append((s, obj, ["-xc", *[x for x in flags if x not in _CXX_ONLY], "-std=gnu89", "-fpermissive"]))
+        else:
+            jobs.append((s, obj, flags))
         objs.append(obj)
     for s in rt:
         obj = os.path.join(work, "rt_" + os.path.basename(s) + ".o")

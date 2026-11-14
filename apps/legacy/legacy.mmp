@@ -10,4 +10,4 @@ SOURCE          legacy.cpp
 #include <platform_paths.hrh>
 OS_LAYER_SYSTEMINCLUDE
 
-LIBRARY         euser.lib ws32.lib
+LIBRARY         euser.lib efsrv.lib ws32.lib

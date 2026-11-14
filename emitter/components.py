@@ -16,6 +16,8 @@ Fields:
     rom_data    data files the component needs in the ROM: ["Z path=repo-relative file", ...] (kernel/rom_args.py)
     export_archives  True: .def names the archives (libgcc, libsupc++ with rtti) define are exported too
     unwinder    True: links libgcc's real EHABI personality routines (drtaeabi), not toolchain/dll_rt/unwind_markers.cpp
+    stub    UID3: a generated DLL <key>.dll with that UID and every export unimplemented (a library the release has no
+            source for, which old binaries load -- emitter/build_mmp.py stub_project)
     no_gcchelp  True: without the kernel's gcchelp.cpp (its per-image operator new/delete): scppnwdl, which is them
 
 BUILTIN: providers built by their own scripts (euser/efsrv/hal/efile).
@@ -100,6 +102,8 @@ COMPONENTS = {
     "wserv": dict(mmp=f"{G}/windowing/windowserver/group/openwfc/wserv_nonnga.mmp", rom="wserv.exe",
                   heap_max=16777216),
     "wsstdplugin": dict(mmp=f"{G}/windowing/windowserver/group/stdplugin_nonnga.mmp", rom="2001b70b.dll"),
+    # the window server's remote GC (draw commands recorded for replay): Avkon's transitions record controls with it
+    "remotegc": dict(mmp=f"{G}/windowing/windowserver/group/remotegc_nonnga.mmp", rom="remotegc.dll"),
     "domaincli": dict(mmp="oss.FCL.sf.os.kernelhwsrv/userlibandfileserver/domainmgr/group/domaincli.mmp"),
     "domainsrv": dict(mmp="oss.FCL.sf.os.kernelhwsrv/userlibandfileserver/domainmgr/group/domainsrv.mmp"),
     "econswserv": dict(mmp=f"{G}/windowing/windowserver/minigui/group/econswserv.mmp"),
@@ -163,12 +167,27 @@ COMPONENTS = {
     "eikctl": dict(mmp=f"{CUI}/uifw/eikctl/group/eikctl.mmp"),
     "eikdlg": dict(mmp=f"{CUI}/uifw/EikStd/dlgsrc/EIKDLG.MMP"),
     "eikcdlg": dict(mmp=f"{CUI}/uifw/EikStd/cdlgsrc/EIKCDLG.MMP"),
-    "avkon": dict(mmp=f"{CUI}/uifw/AvKon/group/avkon.mmp", rtti=True, flags=FINDUTIL_INC, rom_data=[f"private\\10202be9\\101F876E.txt=src/{CUI}/uifw/AvKon/CenRep/101F876E.txt"]),
+    "avkon": dict(mmp=f"{CUI}/uifw/AvKon/group/avkon.mmp", rtti=True, flags=FINDUTIL_INC, rom_data=[f"private\\10202be9\\101F876E.txt=src/{CUI}/uifw/AvKon/CenRep/101F876E.txt",
+                                                                                          "resource\\apps\\avkon2.mif=emitter/avkon2.mif",
+                                                                                          f"private\\10202be9\\2001844B.txt=src/{CUI}/uifw/AvKon/CenRep/2001844B.txt"]),
     "aknnotify": dict(mmp=f"{CUI}/uifw/AvKon/notifsrc/aknNotify.mmp"),
     # the Uikon library (ECOM) plug-in that installs Avkon's app UI factory and control factories into CEikonEnv
     "akninit": dict(mmp=f"{CUI}/uifw/AvKon/initsrc/akninit.mmp"),
     "akncapserverclient": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServerClient.mmp"),
-    "akncapserver": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServer.mmp", rtti=True),
+    # what AknCapServer links besides (it panicked on their stubs at start-up)
+    "akndynamicsoftnoteeventmanager": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknDynamicSoftNote/group/AknDynamicSoftNoteEventManager.mmp"),
+    "ecompluginnotifier": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/EComPluginNotifier.mmp"),
+    "aknlistloadertfx": dict(mmp=f"{CUI}/uifw/AvKon/AknListLoaderTfx/group/aknlistloadertfx.mmp"),
+    "widgetregistryclient": dict(mmp="oss.FCL.sf.mw.web/webengine/widgetregistry/group/WidgetRegistryClient.mmp"),
+    # rom_data: the installed-language list SysLangUtil reads (AknCapServer publishes it at start-up)
+    "akncapserver": dict(mmp=f"{CUI}/uifw/AknGlobalUI/AknCapServer/group/AknCapServer.mmp", rtti=True,
+                         rom_data=["resource\\bootdata\\languages.txt="
+                                   "src/oss.FCL.sf.os.deviceplatformrelease/Version/data/Languages.txt",
+                                   "private\\10202be9\\101F876D.txt=emitter/cenrep/101F876D.txt",
+                                   "private\\10202be9\\200159ED.txt=emitter/cenrep/200159ED.txt",
+                                   "private\\10202be9\\10282CB2.txt=emitter/cenrep/10282CB2.txt",
+                                   "private\\10202be9\\10205CA7.txt=emitter/cenrep/10205CA7.txt",
+                                   "private\\10202be9\\101F8798.txt=emitter/cenrep/101F8798.txt"]),
     "aknanimdll": dict(mmp=f"{CUI}/uifw/AvKon/animdllsrc/AknAnimDll.mmp"),
     "akntransitionutils": dict(mmp=f"{CUI}/uifw/AvKon/AknTransitionUtils/group/akntransitionutils.mmp"),
     "aknphysics": dict(mmp=f"{CUI}/uifw/AvKon/aknphysics/group/aknphysics.mmp"),
@@ -191,9 +210,14 @@ COMPONENTS = {
     "aknskinsrv": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrv.mmp", defs=["AKNS_TRACING_ENABLED_ERROR"], rom_data=[   # Personalisation (skins), Themes (from its .crml)
         "private\\10202be9\\101F876F.txt=src/oss.FCL.sf.mw.uiresources/skins/AknSkins/CenRep/101F876F.txt",
         "private\\10202be9\\102818E8.txt=emitter/cenrep/102818E8.txt",
+        "private\\10202be9\\20021192.txt=emitter/cenrep/20021192.txt",   # Avkon's kinetic scrolling: off
         "private\\10202be9\\102818EB.txt=emitter/cenrep/102818EB.txt"]),
+    # X-plore (an old .sis app) loads it at start
+    "aknswallpaperutils": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknsWallpaperUtils.mmp"),
     "aknskinsrvexe": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinSrvMain.mmp", rom="aknskinsrv.exe",
-                          rom_data=[r"private\10207114\import\101f84b9\series60skin.skn=emitter/skin/series60skin.skn"]),
+                          rom_data=[r"private\10207114\import\101f84b9\series60skin.skn=emitter/skin/series60skin.skn",
+                                    r"private\10207114\import\101f84b9\series60skin.mif=emitter/skin/series60skin.mif",
+                                    r"private\10207114\import\101f84b9\series60skin.mbm=emitter/skin/series60skin.mbm"]),
     "aknskinrenderlib": dict(mmp="oss.FCL.sf.mw.uiresources/skins/AknSkins/group/AknSkinRenderLib.mmp", flags=["-U__MARM_ARMV5__"]),
     "aknicon": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIcon.mmp", rtti=True),
     "akniconsrv": dict(mmp="oss.FCL.sf.mw.uiresources/uigraphics/AknIcon/group/AknIconSrvMain.mmp"),
@@ -202,6 +226,8 @@ COMPONENTS = {
     "aknpictograph": dict(mmp="oss.FCL.sf.mw.uiresources/pictographs/AknPictograph/group/AknPictograph.mmp"),
     "ptiengine": dict(mmp="oss.FCL.sf.mw.inputmethods/textinput/ptienginev2/group/ptienginev2.mmp"),
     "touchfeedback": dict(mmp="oss.FCL.sf.mw.hapticsservices/tactilefeedback/tactilefeedbackclient/group/touchfeedback.mmp"),
+    # the window server click plugin: Avkon's key-sound anim asks it for MTactileFeedbackServer (NULL unless loaded)
+    "tactileclickplugin": dict(mmp="oss.FCL.sf.mw.hapticsservices/tactilefeedback/tactileclickplugin/group/tactileclickplugin.mmp"),
     "aknnotifyplugin2": dict(mmp=f"{CUI}/uifw/AknGlobalUI/group/AknNotifyPlugin2.mmp"),
     "aknnotifyplugin": dict(mmp=f"{CUI}/uifw/AvKon/AknNotifyPlugin_dll/group/AknNotifyPlugin.mmp"),   # eiksrvui's first call
     "aknnotifierwrapper": dict(mmp=f"{CUI}/uifw/AknGlobalUI/NotifierWrapper/group/aknnotifierwrapper.mmp"),
@@ -216,6 +242,26 @@ COMPONENTS = {
     "drtaeabi": {"mmp": "../apps/rt/drtaeabi.mmp", "def": f"{KCS}/eabi/drtaeabiu.def", "rtti": True,
                  "allow_wsd": True, "export_archives": True, "unwinder": True},
     "dfpaeabi": {"mmp": "../apps/rt/dfpaeabi.mmp", "def": f"{KCS}/eabi/dfpaeabiu.def", "export_archives": True},
+    # zlib (ezlib's compressor/decompressor classes over libzcore): old apps decompress their data with it
+    "libzcore": dict(mmp=f"{OSSRV}/compressionlibs/ziplib/group/libz/libzcore.mmp"),
+    "ezlib": dict(mmp=f"{OSSRV}/compressionlibs/ziplib/group/ezlib.mmp"),
+    # what X-plore (an old .sis app) loads besides: real sources where the release has them ...
+    "featdiscovery": dict(mmp="oss.FCL.sf.os.persistentdata/featuremgmt/featuremgr/group/featdiscovery.mmp"),
+    "securesocket": dict(mmp="oss.FCL.sf.os.networkingsrv/networksecurity/tls/group/SecureSocket.mmp"),
+    # the ETel client (CTelephony's RTelServer): with no ETel server its Connect fails cleanly (our cellularsrv fork)
+    "etel": dict(mmp="oss.FCL.sf.os.cellularsrv/telephonyserver/etelserverandcore/group/ETEL.MMP"),
+    "etelmm": dict(mmp="oss.FCL.sf.os.cellularsrv/telephonyserver/etelmultimode/group/etelmm.mmp"),
+    "etel3rdparty": dict(mmp="oss.FCL.sf.os.cellularsrv/telephonyutils/etel3rdpartyapi/Group/Etel3rdParty.mmp"),
+    "mediaclientaudio": dict(mmp="oss.FCL.sf.os.mmaudio/mmlibs/mmfw/MMPFiles/client/MediaClientAudio.mmp"),
+    "mediaclientvideo": dict(mmp="oss.FCL.sf.os.mmaudio/mmlibs/mmfw/MMPFiles/client/MediaClientVideo.mmp"),
+    # ... and stubs for the libraries it has none of (Bluetooth, IrDA/OBEX, contacts, calendar, messaging, the old C
+    # library): the program loads them at start, and calls them only for those features
+    "bluetooth": {"stub": 0}, "btextnotifiers": {"stub": 0x1000A5FA}, "sdpagent": {"stub": 0x10009222},
+    "sdpdatabase": {"stub": 0x10009220}, "irda": {"stub": 0x10003D54}, "irobex": {"stub": 0x10201EF5},
+    "cntmodel": {"stub": 0x10003A71}, "calinterimapi": {"stub": 0x102075E4}, "msgs": {"stub": 0x10004E66},
+    "estlib": {"stub": 0x10003B0B},
+    # remote control (headset keys): the release's sources need the Bluetooth logger header it does not export
+    "remconcoreapi": {"stub": 0x101F9067}, "remconinterfacebase": {"stub": 0x101F9067},
     "scppnwdl": dict(mmp=f"{KCS}/symcpp/scppnwdl.mmp",      # std::nothrow_t: RVCT's prefix header included this
                      flags=["-include", os.path.join(REPO, "src", KCS, "symcpp", "symcpp.h")], no_gcchelp=True),
     # ours: NeoNet's C++ client (apps/neonet/neonet.h) for 2010-style programs and ESOCK, and its phone test

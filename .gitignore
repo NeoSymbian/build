@@ -27,3 +27,4 @@ __pycache__/
 /emitter/sis_rom.args
 /.sis-cache/
 /.sis-build/
+/emitter/avkon2.mif

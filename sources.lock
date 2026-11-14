@@ -9,12 +9,12 @@ oss.FCL.sf.os.graphics	0554a2fd7a2db04cccb279f3d4724d25876e0b7a
 oss.FCL.sf.os.devicesrv	ce33ac3d46a302f839e326636a065bd35a6406e4
 oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
 symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
-oss.FCL.sf.mw.uiresources	6a958a5df3c6a1f6fb55495dcb9d0d0858a536a8
+oss.FCL.sf.mw.uiresources	04c42b0ee65c38955a3def45c8070241d3eaaf05
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
 oss.FCL.sf.os.mmaudio	a39c075cce88671b23d13598fda2f7cbf008f3bb
 oss.FCL.sf.os.mmimaging	dcc68da0bf7c10c664c864262d3213b5b30124c9
-oss.FCL.sf.mw.classicui	c8e3af2baa3b3ed203d8f7efb55a899d2d98d49c
-oss.FCL.sf.mw.appsupport	aba0c0bd074be448ce85f896cb171770298d11ac
+oss.FCL.sf.mw.classicui	ebc5bf1a158c93e15584f879abea46c2bd0d4ab6
+oss.FCL.sf.mw.appsupport	d87d1ec34b649aa0273fa0015eb14a78a6c9d76e
 oss.FCL.sf.mw.inputmethods	508e00db21aeb38a26e5d4826dc4df871da84867
 oss.FCL.sf.mw.hapticsservices	385e5617a81eb3eeb8970c5aaed4cc4187436e6e
 oss.FCL.sf.app.utils	18752ab088dd0f4ebf65ea9403b2c8a1be892b3e
@@ -34,7 +34,7 @@ oss.FCL.sf.mw.svgt	a6e9f61716263f102bd673b7b9161c4519b95dae
 oss.FCL.sf.mw.uitools	32b8b16c02195b3da66ffaa80aced45037cfd8b1
 oss.FCL.sf.app.contacts	22bf872e5efd0796d5a6deb8e918837c7507b658
 oss.FCL.sf.mw.classicui@master	dcea899751dfa099dcca7a5508cf32eab64afa7a
-oss.FCL.sf.os.cellularsrv	d33b71b9b498e69cb71c0a1a1f4b5221181dbb9e
+oss.FCL.sf.os.cellularsrv	c5d3b232c696abcd1e6c161878d4cbbcb73043cd
 oss.FCL.sf.mw.phonesrv	44089abe398e782d843559f79784c9b6b2c3f271
 oss.FCL.sf.mw.usbservices	ea7d525c670f4cca267f70a29b3dfa47da0e9130
 oss.FCL.sf.os.fshell	8536b2c40b48c5bc6bf65f0a6ce4548fe743ae7e

@@ -36,6 +36,7 @@ ART = os.path.join(
 WORK = os.path.join(REPO, ".skin-gen")
 OUT = os.path.join(REPO, "emitter", "skin")
 INC = os.path.join(REPO, ".epoc32", "include")
+SKIN_MIF_IDS = 8192  # the skin's MIF ids from 16384 (scalableseries60skin has ~2500 items, bitmap + mask each)
 
 
 def build_compiler() -> None:
@@ -112,6 +113,14 @@ def main() -> None:
         )
     os.makedirs(OUT, exist_ok=True)
     shutil.copy(os.path.join(WORK, "out", "series60skin.skn"), OUT)
+    # the skin's bitmap file: the server opens it for every client whatever the skin holds (missing: AknCapServer's
+    # start-up fails). No item has artwork yet, so every id shows the transparent placeholder (tools/mif.py).
+    import mif  # noqa: PLC0415 (tools/, beside this script)
+
+    with open(os.path.join(OUT, "series60skin.mif"), "wb") as fh:
+        fh.write(mif.mif({}, SKIN_MIF_IDS))
+    with open(os.path.join(OUT, "series60skin.mbm"), "wb") as fh:  # and its bitmap ids (below 16384)
+        fh.write(mif.mbm(SKIN_MIF_IDS))
     print(
         f"skin_gen: series60skin.skn {os.path.getsize(os.path.join(OUT, 'series60skin.skn'))} B, "
         f"{dropped} items without artwork"

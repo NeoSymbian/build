@@ -28,6 +28,8 @@ step epoc32-export python3 tools/epoc32_export.py
 step fshell-inputs python3 tools/fshell_prepare.py
 # the icon-ID headers (<x>.mbg) S60 sources include, which the mifconv build step emitted
 step mbg python3 tools/mbg.py
+# Avkon's icon file (Z:\resource\apps\avkon2.mif): our own icons as bitmap entries, every avkon.mbg id covered
+step avkon-mif python3 tools/mif.py
 # the S60 CDL client headers no bld.inf exports (mifheader.cdl.h ...): CdlCompiler from mw.uitools, built for the host
 step cdl-headers python3 tools/cdl_headers.py
 step casefix python3 tools/casefix.py
@@ -67,6 +69,8 @@ else
 	rm -f emitter/sis_cdrive.args emitter/sis_rom.args
 fi
 step rom bash kernel/build_rom.sh
+# the ROM's imports as the phone's loader (a ROFS) checks them: missing DLLs, ordinals past an export table (report only)
+step romcheck python3 tools/sis.py romcheck
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
 # RAM path), so the font lives on a non-ROM drive
 C_EXTRA=""

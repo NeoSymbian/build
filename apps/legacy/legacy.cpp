@@ -6,7 +6,7 @@
 //      S60 apps were laid out for; a panel-sized guest also runs the window server out of memory on the phone), then
 //      the pixels. The patched screen driver (graphics scnew.cpp) takes its size from that header and draws there, and
 //      the patched window server (WSTOP.CPP, EVENT.CPP) runs as a guest: no display or event-hook ownership;
-//   2. starts EWSRV.EXE -NoShell and then the program named on its command line (e.g. "grid");
+//   2. starts EWSRV.EXE -NoShell and then the program: Z:\resource\legacy.txt's (an old .sis app) or its argument ("grid");
 //   3. shows the guest screen, scaled to fit, in its neoui surface, and turns neoui's taps and keys into raw events
 //      for the guest window server (RWsSession::SimulateRawEvent).
 // Back (claimed) or Quit ends the program, the guest window server and itself.
@@ -14,6 +14,7 @@
 #include <e32base.h>
 #include <e32debug.h>
 #include <e32keys.h>
+#include <f32file.h>
 #include <w32std.h>
 
 namespace {
@@ -41,6 +42,7 @@ TUint Le32(const TDesC8& aB, TInt aI)
 	}
 
 _LIT(KLegacyChunk, "NeoUiLegacy");
+_LIT(KLegacyProgram, "Z:\\resource\\legacy.txt");
 // the chunk's header, read by scnew.cpp's ScreenHal: magic "NEOL", width, height, stride, offset of the first pixel
 struct TGuestHeader { TUint32 iMagic; TInt32 iWidth, iHeight, iStride, iOffset; };
 const TUint32 KGuestMagic = 0x4C4F454E;
@@ -117,24 +119,50 @@ void Key(RWsSession& aWs, TInt aScan)
 	aWs.Flush();
 	}
 
+// a failed start-up step, in the log (LEGACY's exit reason alone does not say which)
+TInt Fail(const char* aStep, TInt aErr)
+	{
+	RDebug::Printf("legacy: %s failed (%d)", aStep, aErr);
+	return aErr;
+	}
+
 TInt Run()
 	{
+	// the program: Z:\resource\legacy.txt (the build's first SIS= package, tools/sis.py) when the ROM has one, else
+	// the command line (neoui passes "grid")
 	TBuf<64> program;
-	User::CommandLine(program);
+	RFs fs;
+	if (fs.Connect() == KErrNone)
+		{
+		RFile file;
+		TBuf8<64> name;
+		if (file.Open(fs, KLegacyProgram, EFileRead | EFileShareReadersOnly) == KErrNone)
+			{
+			if (file.Read(name) == KErrNone)
+				program.Copy(name);
+			file.Close();
+			}
+		fs.Close();
+		}
 	program.Trim();
+	if (!program.Length())
+		{
+		User::CommandLine(program);
+		program.Trim();
+		}
 	if (!program.Length())
 		program = _L("grid");
 
 	RNeoUi ui;
 	TInt err = ui.Connect();
 	if (err)
-		return err;
+		return Fail("connect to neoui", err);
 	TBuf8<12> geo;
 	if ((err = ui.Geometry(geo)) != KErrNone)
-		return err;
+		return Fail("geometry", err);
 	RChunk surface;
 	if ((err = surface.SetReturnedHandle(ui.Surface())) != KErrNone)
-		return err;
+		return Fail("surface", err);
 
 	TFit f;
 	f.iSw = Le32(geo, 0);
@@ -148,7 +176,7 @@ TInt Run()
 	RChunk guest;
 	const TInt size = f.iOffset + f.iStride * f.iH;
 	if ((err = guest.CreateGlobal(KLegacyChunk, size, size)) != KErrNone)
-		return err;
+		return Fail("guest screen chunk", err);
 	Mem::FillZ(guest.Base(), size);
 	const TGuestHeader header = { KGuestMagic, f.iW, f.iH, f.iStride, f.iOffset };
 	Mem::Copy(guest.Base(), &header, sizeof(header));
@@ -156,15 +184,19 @@ TInt Run()
 
 	RProcess wserv;
 	if ((err = wserv.Create(KGuestWserv, KNoShell)) != KErrNone)
-		return err;
+		return Fail("start the window server", err);
+	// wait for the window server's rendezvous (WSTOP.CPP, once it serves): connecting in a retry loop while it starts
+	// left a half-made session in ws32/fbscli that the next try faulted in (KERN-EXEC 3)
+	TRequestStatus ready;
+	wserv.Rendezvous(ready);
 	wserv.Resume();
+	User::WaitForRequest(ready);
 	RWsSession ws;
-	for (TInt i = 0; (err = ws.Connect()) != KErrNone && i < 100; ++i)
-		User::After(100000);
+	err = ready.Int() != KErrNone ? ready.Int() : ws.Connect();
 	if (err)
 		{
 		wserv.Kill(0);
-		return err;
+		return Fail("connect to the window server", err);
 		}
 	RDebug::Printf("legacy: guest wserv %dx%d up, surface %dx%d", f.iW, f.iH, f.iSw, f.iSh);
 
@@ -198,7 +230,14 @@ TInt Run()
 				ui.Damage(f.iDx, f.iDy, f.iDw, f.iDh);
 				}
 			if (app.ExitType() != EExitPending)
+				{
 				running = EFalse;	// the program ended by itself
+				TExitCategoryName cat = app.ExitCategory();
+				TBuf8<KMaxExitCategoryName + 1> cat8;
+				cat8.Copy(cat);
+				RDebug::Printf("legacy: program ended: type %d reason %d '%s'", app.ExitType(), app.ExitReason(),
+					reinterpret_cast<const char*>(cat8.PtrZ()));
+				}
 			else
 				timer.After(tick, KFrameUs);
 			}

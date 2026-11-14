@@ -11,6 +11,7 @@ on-device installer, SWI, does them; host-side installs trust the lock file's SH
     python3 tools/sis.py imports FILE.exe|.dll     the DLLs an E32 image imports (Deflate images included)
     python3 tools/sis.py install NAME...           (build step) fetch + unpack -> mkfat specs on stdout
     python3 tools/sis.py check NAME... [--rom ARGS]  every import against the ROM: missing DLLs, ordinals past the end
+    python3 tools/sis.py romcheck [ARGS]           the same for every image in the ROM (a build step)
     python3 tools/sis.py --self-test
 """
 
@@ -348,6 +349,42 @@ def rom_dlls(rom_args: str):
     return out
 
 
+def rom_images(rom_args: str):
+    """{rom name: host path} for every Sys\\Bin image in the ROM args."""
+    out = {}
+    for spec in _read(rom_args).decode().split("\n"):
+        if "=" in spec and spec.lower().startswith("sys\\bin\\"):
+            name, path = spec.split("=", 1)
+            out[name.rsplit("\\", 1)[1].lower()] = os.path.join(REPO, path)
+    return out
+
+
+def romcheck(rom_args):
+    """Every ROM image's imports as a loader that resolves them at load time (a ROFS, the phone's Z:) sees them: a
+    missing DLL is KErrNotFound, an ordinal past the exporter's table KErrNotSupported (-5). The XIP ROM builder
+    prelinks and does not catch these. -> the number of problems."""
+    rom = rom_dlls(rom_args)
+    bad = 0
+    for name, path in sorted(rom_images(rom_args).items()):
+        try:
+            imps = imports(_read(path))
+        except (OSError, ValueError, struct.error):
+            continue
+        for dll, ords in imps:
+            d = base_name(dll)
+            top = max(ords, default=0)
+            if d not in rom:
+                bad += 1
+                print(f"romcheck: {name} imports {d}: not in the ROM")
+            elif top > rom[d]:
+                bad += 1
+                print(
+                    f"romcheck: {name} imports {d} ordinal {top}, which exports {rom[d]}"
+                )
+    print(f"romcheck: {len(rom)} images, {bad} problems")
+    return bad
+
+
 def check(names, rom_args):
     rom = rom_dlls(rom_args)
     bad = 0
@@ -437,10 +474,25 @@ def main():
         specs = install(a[1:], os.path.join(REPO, ".sis-build"))
         print("\n".join(specs))
         # the same files in the ROM (Z:) too: the phone keeps its own eMMC C:, so there only Z: carries them
+        exes = [
+            z
+            for z, _ in (sp.split("=", 1) for sp in specs)
+            if z.lower().endswith(".exe")
+        ]
+        legacy = os.path.join(REPO, ".sis-build", "legacy.txt")
+        with open(
+            legacy, "w"
+        ) as fh:  # LEGACY (neoui's Old apps) runs the first package's program
+            fh.write(os.path.basename(exes[0]) if exes else "")
         with open(os.path.join(REPO, "emitter", "sis_rom.args"), "w") as fh:
             for spec in specs:
                 z, host = spec.split("=", 1)
                 fh.write(f"--data\n{z.replace('/', chr(92))}={host}\n")
+            fh.write(f"--data\nResource\\legacy.txt={os.path.relpath(legacy, REPO)}\n")
+    elif a[0] == "romcheck":
+        romcheck(
+            a[1] if len(a) > 1 else os.path.join(REPO, ".ekern-build", "rombuild.args")
+        )
     elif a[0] == "check":
         rom = (
             a[a.index("--rom") + 1]

@@ -1,5 +1,6 @@
 /src/
 /out/
+/base/
 /.nkern-build/
 /.ekern-build/
 /.efile-build/

@@ -442,7 +442,8 @@ def build(key: str, rsc_only: bool = False) -> int:
     srcs += [os.path.join(REPO, e) for e in comp.get("extra", [])]
     rt = [*([] if comp.get("no_gcchelp") else [GCCHELP]), os.path.join(RT, "dll_crt.cpp"),
           os.path.join(BE.ED, "unimpl_export.cpp")]
-    if not comp.get("unwinder"):     # drtaeabi exports libgcc's real personality routines
+    # drtaeabi exports libgcc's real personality routines; a `cxx_runtime` component (C++ exceptions) needs them real
+    if not comp.get("unwinder") and not comp.get("cxx_runtime"):
         rt.append(os.path.join(RT, "unwind_markers.cpp"))
     if not m.is_exe:
         # edllstub.lib (every DLL links it): the REAL Dll::Tls/SetTls/FreeTls + Dll::FileName
@@ -569,7 +570,9 @@ def build(key: str, rsc_only: bool = False) -> int:
             fh.write("\n".join(f"-Wl,-u,{n}" for n in roots) + "\n")
             fh.write("".join(f"-Wl,--defsym,{a}={g}\n" for a, g in y_alias.items()))
             fh.write("\n".join('"' + o + '"' for o in all_objs))
-        archives = [*static_archives, *([_libsupcxx()] if rtti else []), BE._libgcc()]
+        # `cxx_runtime`: the C++ runtime (__cxa_*, the exception state) is DRTAEABI.DLL's, imported, as for every
+        # EABI DLL of the release -- a private libsupc++ copy brings writable globals and its own std::exception
+        archives = [*static_archives, *([_libsupcxx()] if rtti and not comp.get("cxx_runtime") else []), BE._libgcc()]
         args = [BE.GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections", "-Wl,--no-demangle",
                 f"-Wl,-T,{ld}", "-march=armv5te", "-marm", f"@{rsp}",
                 "-Wl,--start-group", *archives, "-Wl,--end-group", "-o", out]
@@ -587,7 +590,8 @@ def build(key: str, rsc_only: bool = False) -> int:
     link(objs, elf1, True)
     missing = sorted(BE._nm("--undefined-only", elf1) - {""})
     # `libs`: extra providers the mmp does not name
-    resolve, dll_order = provider_maps(comp.get("libs", []) + m.libs)
+    resolve, dll_order = provider_maps(comp.get("libs", []) + m.libs
+                                       + (["drtaeabi.lib"] if comp.get("cxx_runtime") else []))
     imports = {n: resolve[n] for n in missing if n in resolve and resolve[n][0] != rom}
     # typeinfo (_ZTI/_ZTS) is never imported: RVCT-era .defs rarely freeze it and a provider built without RTTI
     # would export garbage. Each unresolved _ZTI<X> is synthesized locally as a ROOT class (__class_type_info + its

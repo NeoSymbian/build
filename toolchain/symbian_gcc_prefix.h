@@ -51,7 +51,11 @@ typedef __WCHAR_TYPE__ __TText;
 #define NONSHARABLE_CLASS(x)  class x
 #define NONSHARABLE_STRUCT(x) struct x
 #define __NORETURN__ __attribute__((noreturn))
+#if defined(__cplusplus) && defined(__EXCEPTIONS)
+#define __NO_THROW throw()   /* -fexceptions (STLport users): as gcce.h, so e32cmn.h's placement new matches GCC's */
+#else
 #define __NO_THROW
+#endif
 #define __THROW(t)
 
 /* --- _FOFF: e32def.h picks __builtin_offsetof for __GNUC__>=4, which rejects a

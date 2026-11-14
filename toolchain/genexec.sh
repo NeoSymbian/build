@@ -17,4 +17,9 @@ XX
 chmod +x "$SHIM/cpp"
 mkdir -p "$OUT"
 cd "$K"
-PATH="$SHIM:$PATH" perl genexec.pl -i execs.txt -e "$OUT/exec_enum.h" -u "$OUT/exec_user.h" -k "$OUT/exec_kernel.h"
+PATH="$SHIM:$PATH" perl genexec.pl -i execs.txt -e "$SHIM/exec_enum.h" -u "$SHIM/exec_user.h" -k "$SHIM/exec_kernel.h"
+# replace a header only when it changed: a new mtime would recompile every object that includes it (and so relink
+# every component) on each build
+for h in exec_enum.h exec_user.h exec_kernel.h; do
+	cmp -s "$SHIM/$h" "$OUT/$h" || cp "$SHIM/$h" "$OUT/$h"
+done

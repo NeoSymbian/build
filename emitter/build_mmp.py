@@ -606,6 +606,11 @@ def build(key: str, rsc_only: bool = False) -> int:
     # itself (elf.extract data_import_sites).
     data_imps = {n: imports.pop(n) for n in list(imports)
                  if n in DATA_EXPORTS or n.startswith(("_ZTV", "_ZTI", "_ZTS"))}
+    # the synthesized typeinfo below points at __class_type_info's vtable: a `cxx_runtime` image (no libsupc++ of its
+    # own) imports it from drtaeabi
+    cti = "_ZTVN10__cxxabiv117__class_type_infoE"
+    if ti_names and comp.get("cxx_runtime") and cti in resolve:
+        data_imps[cti] = resolve[cti]
     veneer_o = devlink.make_veneers(work, imports, key)
     stub_s = os.path.join(work, "unimpl_stubs.s")
     with open(stub_s, "w") as fh:

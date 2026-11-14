@@ -34,7 +34,7 @@ step fshell-inputs python3 tools/fshell_prepare.py
 # the icon-ID headers (<x>.mbg) S60 sources include, which the mifconv build step emitted
 step mbg python3 tools/mbg.py
 # Avkon's icon file (Z:\resource\apps\avkon2.mif): our own icons as bitmap entries, every avkon.mbg id covered
-step avkon-mif python3 tools/mif.py
+step avkon-mif python3 src/legacy/tools/mif.py
 # the S60 CDL client headers no bld.inf exports (mifheader.cdl.h ...): CdlCompiler from mw.uitools, built for the host
 step cdl-headers python3 tools/cdl_headers.py
 step casefix python3 tools/casefix.py
@@ -43,7 +43,7 @@ step features-dat python3 tools/features_dat.py emitter/features.dat
 # Central Repository files for repositories that ship only as .crml (emitter/cenrep/<uid>.txt)
 step cenrep-crml python3 tools/crml2txt.py
 # the default skin package (the skin descriptor compiler built for the host; our artwork where the release has none)
-step skin python3 tools/skin_gen.py
+step skin python3 src/legacy/tools/skin_gen.py
 step fileserver-objects bash kernel/build_efile.sh
 step efsrv python3 emitter/build_efsrv_device.py
 step hal python3 emitter/build_hal_device.py
@@ -67,25 +67,18 @@ if [ -f rust/exes.txt ]; then
 else
 	rm -f emitter/rust_rom.args emitter/rust_cdrive.args
 fi
-# NeoSymbian: the old .sis packages named in SIS (comma-separated sis.lock names), unpacked onto C: as the 2010
-# installer would have put them, and into the ROM (Z:) for the phone (tools/sis.py)
+# NeoSymbian: the old .sis packages named in SIS (comma-separated names from NeoSymbian/legacy's sis.lock), unpacked
+# onto C: as the 2010 installer would have put them, and into the ROM (Z:) for the phone (legacy's tools/sis.py)
 if [ -n "${SIS:-}" ]; then
-	step sis sh -c "python3 tools/sis.py install $(echo "$SIS" | tr , ' ') > emitter/sis_cdrive.args"
+	step sis sh -c "python3 src/legacy/tools/sis.py install $(echo "$SIS" | tr , ' ') > emitter/sis_cdrive.args"
 else
 	rm -f emitter/sis_cdrive.args emitter/sis_rom.args
 fi
 step rom bash kernel/build_rom.sh
 # the ROM's imports as the phone's loader (a ROFS) checks them: missing DLLs, ordinals past an export table (report only)
-step romcheck python3 tools/sis.py romcheck
+step romcheck python3 src/legacy/tools/sis.py romcheck
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
 # RAM path), so the font lives on a non-ROM drive
-# NeoSymbian: the old .sis packages named in SIS (comma-separated sis.lock names), unpacked onto C: as the 2010
-# installer would have put them (tools/sis.py)
-if [ -n "${SIS:-}" ]; then
-	step sis sh -c "python3 tools/sis.py install $(echo "$SIS" | tr , ' ') > emitter/sis_cdrive.args"
-else
-	rm -f emitter/sis_cdrive.args
-fi
 C_EXTRA=""
 [ ! -f emitter/rust_cdrive.args ] || C_EXTRA=$(cat emitter/rust_cdrive.args)
 [ ! -f emitter/sis_cdrive.args ] || C_EXTRA="$C_EXTRA $(cat emitter/sis_cdrive.args)"

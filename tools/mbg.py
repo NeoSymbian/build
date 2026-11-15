@@ -96,12 +96,23 @@ def write_mbg(header: str, items: list[tuple[str, bool]]) -> str:
         return None
     path = os.path.join(OUT, os.path.basename(header).lower())
     try:
-        with open(path, "w") as fh:
-            fh.write("\n".join(out))
+        _write_if_changed(path, "\n".join(out))
     except OSError as e:        # a bld.inf whose HEADERFILE is an unexpanded macro / not a file name: skip it, not the whole run
         print(f"  ! HEADERFILE {header!r}: {e} -- skipped")
         return None
     return path
+
+
+def _write_if_changed(path, text):
+    """A header keeps its mtime when unchanged: a rewrite recompiles every object that includes it, on each build."""
+    try:
+        with open(path, newline="") as fh:
+            if fh.read() == text:
+                return
+    except OSError:
+        pass
+    with open(path, "w", newline="\n") as fh:
+        fh.write(text)
 
 
 BITMAP = re.compile(r"^\s*START\s+BITMAP\s+(\S+)(.*?)^\s*END\b", re.I | re.S | re.M)
@@ -123,8 +134,7 @@ def write_bmconv_mbg(mbm: str, blk: str) -> str | None:
     out[-1] = out[-1].rstrip(",")
     out += ["\t};", ""]
     path = os.path.join(OUT, stem + ".mbg")
-    with open(path, "w", newline="\n") as fh:
-        fh.write("\n".join(out))
+    _write_if_changed(path, "\n".join(out))
     return path
 
 

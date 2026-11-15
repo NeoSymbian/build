@@ -15,14 +15,16 @@ For a component key in emitter/components.py:
     python3 emitter/build_mmp.py --rsc <keys>    (resources only: run before the bulk build so every .rsg exists)
     python3 emitter/build_mmp.py --list
 
-ELF kept at .mmp-build/<key>/<key>.elf.
+ELF kept at .mmp-build/<key>/<key>.elf; TARGETTYPE lib produces <target stem>.a there instead.
 """
 from __future__ import annotations
 
 import concurrent.futures as cf
+import functools
 import glob
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -108,6 +110,10 @@ def _symcc_cmd(src, env):
         return _SYMCC_CMDS[key]
 
 
+# C++-only options a C translation unit (`c_sources`) leaves out
+_CXX_ONLY = {"-std=gnu++03", "-fno-access-control", "-fno-threadsafe-statics", "-frtti"}
+
+
 def _compile_one(src, obj, flags, env):
     global TOOLCHAIN_REV
     if TOOLCHAIN_REV is None:
@@ -119,7 +125,10 @@ def _compile_one(src, obj, flags, env):
         return src, 0, ""
     # -MMD: <obj>.d = every header this TU read; feeds _deps_newer (a header change recompiles its dependents).
     # g++ directly with symcc's command line (SYMCC_PRINT, cached per flag set): a shell start per TU is slow.
-    r = subprocess.run([*_symcc_cmd(src, env), src, "-O2", "-w", *flags, "-MMD", "-MF", obj + ".d", "-o", obj],
+    lang = []
+    if flags[:1] == ["-xc"]:            # a C source of a `c_sources` component: C, as abld built it
+        lang, flags = ["-x", "c"], flags[1:]
+    r = subprocess.run([*_symcc_cmd(src, env), *lang, src, "-O2", "-w", *flags, "-MMD", "-MF", obj + ".d", "-o", obj],
                        capture_output=True, text=True, errors="replace", env=env, cwd=REPO)
     if r.returncode == 0:
         open(stamp, "w").write(key)
@@ -131,6 +140,101 @@ def _libsupcxx() -> str:
                           check=True, capture_output=True, text=True).stdout.strip()
 
 
+@functools.lru_cache(maxsize=None)
+def _component_mmp(key):
+    # Reuse the preprocessed project for ordering, STATICLIBRARY lookup and compilation within this run.
+    return MMP.parse(os.path.join(MMP.BASE, C.COMPONENTS[key]["mmp"]))
+
+
+def _archive_path(key, m):
+    return os.path.join(OUT_ROOT, key, os.path.splitext(m.target)[0].lower() + ".a")
+
+
+def _static_archives(m):
+    if not m.staticlibs:
+        return []
+    providers, unreadable = {}, []
+    for key, comp in C.COMPONENTS.items():
+        if "stub" in comp:
+            continue
+        try:
+            p = _component_mmp(key)
+        except (OSError, RuntimeError):
+            # A partial checkout or broken unrelated project must not stop a selected component's build.
+            unreadable.append(key)
+            continue
+        if p.targettype == "lib":
+            providers.setdefault(os.path.splitext(p.target)[0].lower(), []).append((key, p))
+    archives = []
+    for lib in m.staticlibs:
+        hits = providers.get(os.path.splitext(lib)[0].lower(), [])
+        if len(hits) != 1:
+            why = ("no registered TARGETTYPE lib provider" if not hits
+                   else "ambiguous providers: " + ", ".join(k for k, _ in hits))
+            if not hits and unreadable:
+                why += "; could not read registry entries: " + ", ".join(unreadable)
+            raise RuntimeError(f"{m.target}: STATICLIBRARY {lib}: {why}")
+        key, p = hits[0]
+        archive = _archive_path(key, p)
+        if not os.path.isfile(archive):
+            raise RuntimeError(f"{m.target}: STATICLIBRARY {lib}: missing {archive}; build {key} first")
+        archives.append(archive)
+    return archives
+
+
+def _archive(out, objs):
+    # Resolve a bare GCC through PATH too, so ar comes from the SAME toolchain directory.
+    gcc = shutil.which(BE.GCC) or BE.GCC
+    ar = gcc[:-3] + "ar"
+    # ar rcs replaces named members but retains removed sources: always start with a fresh archive.
+    tmp = out + ".tmp"
+    if os.path.exists(tmp):
+        os.unlink(tmp)
+    subprocess.run([ar, "rcs", tmp, *objs], check=True)
+    os.replace(tmp, out)
+
+
+def _stat(path):
+    try:
+        st = os.stat(path)
+        return f"{path}:{st.st_size}:{st.st_mtime_ns}"
+    except OSError:
+        return f"{path}:-"
+
+
+@functools.lru_cache(maxsize=None)
+def _digest(path):
+    """A .def by content: euser's is written again by every build (same ordinals, new mtime)."""
+    try:
+        with open(path, "rb") as fh:
+            return f"{path}:{hashlib.sha1(fh.read()).hexdigest()}"
+    except OSError:
+        return f"{path}:-"
+
+
+@functools.lru_cache(maxsize=None)
+def _tools_sig():
+    """The link and image tools themselves: a change to any of them relinks everything."""
+    files = sorted(glob.glob(os.path.join(HERE, "*.py")) + glob.glob(os.path.join(HERE, "*.ld"))
+                   + glob.glob(os.path.join(RT, "*")))
+    return "|".join(_stat(f) for f in files)
+
+
+def _link_sig(key, comp, m, objs, static_archives, defp):
+    """Everything an image is made from once its objects are compiled: the objects, archives, the .defs (its own and
+    its providers', which give the import ordinals), the registry entry, the parsed mmp and the tools."""
+    h, parts = hashlib.sha1(), []
+    for part in ([repr(sorted(comp.items())), repr(m), _tools_sig(), _digest(defp) if defp else "-"]
+                 + [_stat(o) for o in objs + static_archives]
+                 + [f"{s}:{r}:{_digest(d)}" for s, r, d in _providers(comp.get("libs", []) + m.libs, quiet=True)]):
+        h.update(part.encode())
+        h.update(b"\0")
+        parts.append(part)
+    with open(os.path.join(OUT_ROOT, key, "link.parts"), "w") as fh:     # why a link was not skipped: diff these
+        fh.write("\n".join(parts) + "\n")
+    return h.hexdigest()
+
+
 DATA_EXPORTS: set[str] = set()      # every DATA-flagged export seen in a provider .def
 
 
@@ -140,9 +244,8 @@ def gcc_mangled(name):
     return name.replace("FY", "F") if name.startswith("_Z") else name
 
 
-def provider_maps(libs):
-    """name -> (rom dll, ordinal), honouring the mmp LIBRARY list; euser wins."""
-    resolve = {}
+def _providers(libs, quiet=False):
+    """[(stem, rom dll, .def path)] for an mmp's LIBRARY list (stubs and unregistered names skipped)."""
     order = []
     for lib in libs:
         stem = lib.rsplit(".", 1)[0]
@@ -151,20 +254,32 @@ def provider_maps(libs):
         if stem in C.BUILTIN:
             rom, defp = C.BUILTIN[stem]
         elif stem in C.COMPONENTS and "stub" in C.COMPONENTS[stem]:
-            print(f"  ! LIBRARY {lib}: a stub DLL, no exports to link (its imports -> stubs)")
+            if not quiet:
+                print(f"  ! LIBRARY {lib}: a stub DLL, no exports to link (its imports -> stubs)")
             continue
         elif stem in C.COMPONENTS:
-            m = MMP.parse(os.path.join(MMP.BASE, C.COMPONENTS[stem]["mmp"]))
+            m = _component_mmp(stem)
+            if m.targettype == "lib":
+                continue          # archives have neither a ROM image nor an import table
             rom = C.rom_name(stem, m.targettype)
             defp = (os.path.join(MMP.BASE, C.COMPONENTS[stem]["def"])
                     if "def" in C.COMPONENTS[stem] else m.def_path())
         else:
-            print(f"  ! LIBRARY {lib}: no provider registered (its imports -> stubs)")
+            if not quiet:
+                print(f"  ! LIBRARY {lib}: no provider registered (its imports -> stubs)")
             continue
         if not defp:
-            print(f"  ! LIBRARY {lib}: no .def found")
+            if not quiet:
+                print(f"  ! LIBRARY {lib}: no .def found")
             continue
         order.append((stem, rom, defp))
+    return order
+
+
+def provider_maps(libs):
+    """name -> (rom dll, ordinal), honouring the mmp LIBRARY list; euser wins."""
+    resolve = {}
+    order = _providers(libs)
     for stem, rom, defp in sorted(order, key=lambda t: t[0] == "euser"):   # euser last = wins
         d = parse_def(defp)
         for ordn, name in d.by_ordinal.items():
@@ -210,8 +325,12 @@ def build_resources(key: str, m, rom: str) -> int:
         out = os.path.join(HERE, "rsc", *tp.split("/"), stem + ".rsc")
         # the .rsg always (as raptor: HEADER only decides whether it is exported; hlplch.cpp includes its own lch.rsg)
         rsg = os.path.join(MMP.EPOC32, "include", stem + ".rsg")
-        ok, log = rsc.compile_rss(b["rss"], out, rsg, incs=m.userinc + m.sysinc, uids=b["uids"],
+        ok, log = rsc.compile_rss(b["rss"], out, rsg + ".new", incs=m.userinc + m.sysinc, uids=b["uids"],
                                   defs=C.COMPONENTS[key].get("rdefs", ()))
+        if os.path.isfile(rsg + ".new"):      # replace the .rsg only when it changed (its includers recompile)
+            with open(rsg + ".new", errors="replace") as fh:
+                _write_if_changed(rsg, fh.read())
+            os.unlink(rsg + ".new")
         if ok:
             lines.append(tp.replace("/", "\\") + "\\" + stem + ".rsc=" +
                          os.path.relpath(out, REPO).replace("\\", "/"))
@@ -242,6 +361,19 @@ def compile_registration(key: str, m, rom: str) -> None:
 STUB_EXPORTS = 3000     # a stub DLL's export slots: more than any 2010 library's .def
 
 
+def _write_if_changed(path, text):
+    """Generated sources and headers keep their mtime when unchanged: a rewrite would recompile (and relink) every
+    object that includes them on each build."""
+    try:
+        with open(path) as fh:
+            if fh.read() == text:
+                return
+    except OSError:
+        pass
+    with open(path, "w") as fh:
+        fh.write(text)
+
+
 def stub_project(key: str, comp: dict) -> str:
     """A `stub` component (a library the release has no source for, which old binaries load): a generated .mmp, .def
     and empty source in its work dir -- the DLL's name and UID, STUB_EXPORTS ordinals, each the unimplemented-export
@@ -249,20 +381,19 @@ def stub_project(key: str, comp: dict) -> str:
     work = os.path.join(OUT_ROOT, key, "stub")
     os.makedirs(work, exist_ok=True)
     rom, uid3 = f"{key}.dll", comp["stub"]
-    with open(os.path.join(work, "stub.cpp"), "w") as fh:
-        fh.write("// generated by emitter/build_mmp.py: a stub DLL, every export unimplemented\n")
-    with open(os.path.join(work, "stub.def"), "w") as fh:
-        fh.write("EXPORTS\n" + "".join(f"\tneo_stub_{n} @ {n} NONAME\n" for n in range(1, STUB_EXPORTS + 1)))
-    with open(os.path.join(work, "stub.mmp"), "w") as fh:
-        fh.write(f"TARGET {rom}\nTARGETTYPE dll\nUID 0x1000008d 0x{uid3:08x}\nSOURCEPATH .\nSOURCE stub.cpp\n"
-                 f"DEFFILE stub.def\nLIBRARY euser.lib\n")
+    _write_if_changed(os.path.join(work, "stub.cpp"),
+                      "// generated by emitter/build_mmp.py: a stub DLL, every export unimplemented\n")
+    _write_if_changed(os.path.join(work, "stub.def"),
+                      "EXPORTS\n" + "".join(f"\tneo_stub_{n} @ {n} NONAME\n" for n in range(1, STUB_EXPORTS + 1)))
+    _write_if_changed(os.path.join(work, "stub.mmp"),
+                      f"TARGET {rom}\nTARGETTYPE dll\nUID 0x1000008d 0x{uid3:08x}\nSOURCEPATH .\nSOURCE stub.cpp\n"
+                      f"DEFFILE stub.def\nLIBRARY euser.lib\n")
     return os.path.join(work, "stub.mmp")
 
 
 def build(key: str, rsc_only: bool = False) -> int:
     comp = C.COMPONENTS[key]
-    mmp_path = stub_project(key, comp) if "stub" in comp else os.path.join(MMP.BASE, comp["mmp"])
-    m = MMP.parse(mmp_path)
+    m = MMP.parse(stub_project(key, comp)) if "stub" in comp else _component_mmp(key)
     rom = C.rom_name(key, m.targettype)
     if rsc_only:
         r = build_resources(key, m, rom)
@@ -273,7 +404,10 @@ def build(key: str, rsc_only: bool = False) -> int:
         return bad
     work = os.path.join(OUT_ROOT, key)
     os.makedirs(work, exist_ok=True)
-    print(f"=== {key}: {m.target} ({m.targettype}) -> {rom}   [{len(m.sources)} sources]")
+    is_lib = m.targettype == "lib"
+    output = _archive_path(key, m) if is_lib else rom
+    print(f"=== {key}: {m.target} ({m.targettype}) -> {output}   [{len(m.sources)} sources]")
+    static_archives = [] if is_lib else _static_archives(m)
 
     # USERINCLUDE wins quoted lookups (abld order): -iquote precedes every -I, incl. symcc's own kernel dirs.
     incs = [x for p in m.userinc for x in ("-iquote", p)]
@@ -308,7 +442,8 @@ def build(key: str, rsc_only: bool = False) -> int:
     srcs += [os.path.join(REPO, e) for e in comp.get("extra", [])]
     rt = [*([] if comp.get("no_gcchelp") else [GCCHELP]), os.path.join(RT, "dll_crt.cpp"),
           os.path.join(BE.ED, "unimpl_export.cpp")]
-    if not comp.get("unwinder"):     # drtaeabi exports libgcc's real personality routines
+    # drtaeabi exports libgcc's real personality routines; a `cxx_runtime` component (C++ exceptions) needs them real
+    if not comp.get("unwinder") and not comp.get("cxx_runtime"):
         rt.append(os.path.join(RT, "unwind_markers.cpp"))
     if not m.is_exe:
         # edllstub.lib (every DLL links it): the REAL Dll::Tls/SetTls/FreeTls + Dll::FileName
@@ -320,6 +455,8 @@ def build(key: str, rsc_only: bool = False) -> int:
         rt += [os.path.join(RT, "exe_dso_handle.cpp")]
         rt += [os.path.join(BE.B, "euser", "epoc", "arm", "uc_exe.cia"),
                os.path.join(EE, "dev_exe_startup.cpp")]
+    if is_lib:
+        rt = []                    # an archive contains project sources, never image startup/runtime objects
 
     jobs, objs = [], []
     for i, s in enumerate(srcs):
@@ -342,7 +479,12 @@ def build(key: str, rsc_only: bool = False) -> int:
                 with open(wrap, "w") as fh:
                     fh.write(text)
             s = wrap
-        jobs.append((s, obj, flags))
+        if comp.get("c_sources") and s.endswith(".c"):
+            # C, the old dialect (K&R definitions, `typeid` as a name); GCC 14 makes its implicit declarations errors
+            # unless -fpermissive
+            jobs.append((s, obj, ["-xc", *[x for x in flags if x not in _CXX_ONLY], "-std=gnu89", "-fpermissive"]))
+        else:
+            jobs.append((s, obj, flags))
         objs.append(obj)
     for s in rt:
         obj = os.path.join(work, "rt_" + os.path.basename(s) + ".o")
@@ -367,6 +509,21 @@ def build(key: str, rsc_only: bool = False) -> int:
                 print("      " + l[-200:])
         print(f"  {len(failed)}/{len(jobs)} TUs failed")
         return 1
+
+    if is_lib:
+        _archive(output, objs)
+        print(f"  wrote {os.path.relpath(output, REPO)} ({os.path.getsize(output)} B)")
+        return bad
+
+    # an unchanged link: the image from the last build that made it from the same inputs (NEO_RELINK=1 forces)
+    sig_defp = os.path.join(MMP.BASE, comp["def"]) if "def" in comp else m.def_path()
+    sig = _link_sig(key, comp, m, objs, static_archives, sig_defp)
+    stamp = os.path.join(work, "link.stamp")
+    out_path = os.path.join(HERE, rom)
+    if not os.environ.get("NEO_RELINK") and os.path.isfile(stamp) and open(stamp).read() == sig + _stat(out_path):
+        compile_registration(key, m, rom)
+        print(f"  up to date: emitter/{rom}")
+        return bad
 
     if not m.is_exe:
         entry_o = os.path.join(work, "dll_entry.s.o")
@@ -395,7 +552,7 @@ def build(key: str, rsc_only: bool = False) -> int:
     if not m.is_exe and not defmap:
         print("  ! no .def found -- DLL would export nothing")
         return 1
-    defined = BE._nm("--defined-only", *objs)
+    defined = BE._nm("--defined-only", *objs, *static_archives)
     if comp.get("export_archives"):     # drtaeabi/dfpaeabi: the runtime's exports live in the archives (-u pulls them)
         defined |= BE._nm("--defined-only", *([_libsupcxx()] if rtti else []), BE._libgcc())
     exportable = sorted(set(defmap.by_ordinal.values()) & defined) if defmap else []
@@ -413,9 +570,12 @@ def build(key: str, rsc_only: bool = False) -> int:
             fh.write("\n".join(f"-Wl,-u,{n}" for n in roots) + "\n")
             fh.write("".join(f"-Wl,--defsym,{a}={g}\n" for a, g in y_alias.items()))
             fh.write("\n".join('"' + o + '"' for o in all_objs))
-        archives = [*([_libsupcxx()] if rtti else []), BE._libgcc()]
+        # `cxx_runtime`: the C++ runtime (__cxa_*, the exception state) is DRTAEABI.DLL's, imported, as for every
+        # EABI DLL of the release -- a private libsupc++ copy brings writable globals and its own std::exception
+        archives = [*static_archives, *([_libsupcxx()] if rtti and not comp.get("cxx_runtime") else []), BE._libgcc()]
         args = [BE.GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections", "-Wl,--no-demangle",
-                f"-Wl,-T,{ld}", "-march=armv5te", "-marm", f"@{rsp}", *archives, "-o", out]
+                f"-Wl,-T,{ld}", "-march=armv5te", "-marm", f"@{rsp}",
+                "-Wl,--start-group", *archives, "-Wl,--end-group", "-o", out]
         if ignore:
             args.insert(1, "-Wl,--unresolved-symbols=ignore-all")
         # PC-relative linker veneers for far calls: the default `ldr ip,[pc]` + an ABSOLUTE target word is not
@@ -430,7 +590,8 @@ def build(key: str, rsc_only: bool = False) -> int:
     link(objs, elf1, True)
     missing = sorted(BE._nm("--undefined-only", elf1) - {""})
     # `libs`: extra providers the mmp does not name
-    resolve, dll_order = provider_maps(comp.get("libs", []) + m.libs)
+    resolve, dll_order = provider_maps(comp.get("libs", []) + m.libs
+                                       + (["drtaeabi.lib"] if comp.get("cxx_runtime") else []))
     imports = {n: resolve[n] for n in missing if n in resolve and resolve[n][0] != rom}
     # typeinfo (_ZTI/_ZTS) is never imported: RVCT-era .defs rarely freeze it and a provider built without RTTI
     # would export garbage. Each unresolved _ZTI<X> is synthesized locally as a ROOT class (__class_type_info + its
@@ -445,6 +606,11 @@ def build(key: str, rsc_only: bool = False) -> int:
     # itself (elf.extract data_import_sites).
     data_imps = {n: imports.pop(n) for n in list(imports)
                  if n in DATA_EXPORTS or n.startswith(("_ZTV", "_ZTI", "_ZTS"))}
+    # the synthesized typeinfo below points at __class_type_info's vtable: a `cxx_runtime` image (no libsupc++ of its
+    # own) imports it from drtaeabi
+    cti = "_ZTVN10__cxxabiv117__class_type_infoE"
+    if ti_names and comp.get("cxx_runtime") and cti in resolve:
+        data_imps[cti] = resolve[cti]
     veneer_o = devlink.make_veneers(work, imports, key)
     stub_s = os.path.join(work, "unimpl_stubs.s")
     with open(stub_s, "w") as fh:
@@ -527,13 +693,35 @@ def build(key: str, rsc_only: bool = False) -> int:
                     data=ext.data, data_base=ext.data_base, bss_size=ext.bss_size,
                     data_relocs=ext.data_relocs, code_reloc_types=ext.code_reloc_types,
                     data_reloc_types=ext.data_reloc_types, exception_desc=ext.exception_desc, **kw)
-    out_path = os.path.join(HERE, rom)
     with open(out_path, "wb") as fh:
         fh.write(img)
     compile_registration(key, m, rom)
     result = check_image(img)
+    with open(stamp, "w") as fh:          # only an accepted image is reused
+        fh.write(sig + _stat(out_path) if result.ok else "")
     print(f"  wrote emitter/{rom} ({len(img)} B)  " + ("[ACCEPTED]" if result.ok else format_result(result)))
     return 0 if result.ok else 1
+
+
+# components built at once (each compiles on up to JOBS threads): half the cores keeps a cold build in memory
+PARALLEL = int(os.environ.get("MMP_PARALLEL", str(max(1, (os.cpu_count() or 4) // 2))))
+
+
+def _build_captured(key, rsc_only=False, capture=True):
+    """build() with its report captured (a worker process): (failed, text)."""
+    import io  # noqa: PLC0415
+    buf = io.StringIO() if capture else None
+    old = sys.stdout
+    if buf:
+        sys.stdout = buf
+    try:
+        rc = 1 if build(key, rsc_only) else 0
+    except (Exception, SystemExit) as e:   # noqa: BLE001 -- one bad mmp (or a `link failed` SystemExit) must
+        print(f"=== {key}: FAILED: {(str(e).splitlines() or ['?'])[0][:200]}")   # not stop a batch
+        rc = 1
+    finally:
+        sys.stdout = old
+    return rc, buf.getvalue() if buf else ""
 
 
 def main() -> int:
@@ -545,15 +733,39 @@ def main() -> int:
     rsc_only = "--rsc" in args
     args = [a for a in args if a != "--rsc"]
     keys = list(C.COMPONENTS) if args == ["--all"] else args
-    while True:
-        failed = []
+    if not rsc_only:
+        libs, others = [], []
         for k in keys:
             try:
-                if build(k, rsc_only):
+                is_lib = "stub" not in C.COMPONENTS[k] and _component_mmp(k).targettype == "lib"
+            except Exception:      # let build() report this key's error without stopping the batch
+                is_lib = False
+            (libs if is_lib else others).append(k)
+        keys = libs + others
+        lib_keys = set(libs)
+    while True:
+        failed = []
+        if rsc_only:          # resources include each other's .rsg: in order, as before
+            for k in keys:
+                rc, out = _build_captured(k, True, capture=False)
+                if rc:
                     failed.append(k)
-            except (Exception, SystemExit) as e:   # noqa: BLE001 -- one bad mmp (or a `link failed` SystemExit) must
-                print(f"=== {k}: FAILED: {(str(e).splitlines() or ['?'])[0][:200]}")   # not stop a batch
-                failed.append(k)
+        else:
+            # libraries first (their archives are linked into the rest), then everything else, MMP_PARALLEL at a time
+            libs = [k for k in keys if k in lib_keys]
+            for batch in (libs, [k for k in keys if k not in lib_keys]):
+                if PARALLEL <= 1 or len(batch) <= 1:
+                    results = (_build_captured(k, capture=False) for k in batch)
+                else:
+                    ex = cf.ProcessPoolExecutor(PARALLEL)
+                    results = ex.map(_build_captured, batch)
+                for k, (rc, out) in zip(batch, results):
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+                    if rc:
+                        failed.append(k)
+                if PARALLEL > 1 and len(batch) > 1:
+                    ex.shutdown()
         # resources include each other's .rsg (eikcdlg.rss -> avkon.rsg): run the failed ones again while that helps
         if not (rsc_only and failed and len(failed) < len(keys)):
             return 1 if failed else 0

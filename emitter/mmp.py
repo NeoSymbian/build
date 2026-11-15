@@ -245,6 +245,7 @@ def _path_statement_dirs(path: str, mdir: str, extra_defs=()) -> dict:
 
 
 _REL_INCLUDE = re.compile(r'^(\s*#\s*include\s*")([^"]+)(")', re.M)
+_SYS_INCLUDE = re.compile(r'^(\s*#\s*include\s*<)([^>]*\\[^>]*)(>)', re.M)
 
 
 def preprocess(path: str, extra_defs=(), markers: bool = False) -> str:
@@ -260,6 +261,8 @@ def preprocess(path: str, extra_defs=(), markers: bool = False) -> str:
         mapped = map_sf_path(full) if not os.path.exists(full) else full
         return m.group(1) + mapped.replace("\\", "/") + m.group(3) if mapped != full else m.group(0)
     fixed = _REL_INCLUDE.sub(fix, text)
+    # `#include <vg\openvguids.hrh>`: Windows separators in a system include (the sfopenvg mmps)
+    fixed = _SYS_INCLUDE.sub(lambda m: m.group(1) + m.group(2).replace("\\", "/") + m.group(3), fixed)
     src, stdin = (path, None) if fixed == text else ("-", fixed)
     r = subprocess.run([CPP, "-undef", "-nostdinc", "-x", "c", "-w", *([] if markers else ["-P"]), *PLATFORM_DEFS,
                         *extra_defs, "-I", CEDAR, "-I", os.path.join(EPOC32, "include"),

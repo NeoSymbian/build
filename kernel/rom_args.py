@@ -28,6 +28,8 @@ def main() -> None:
     seen = set()
     for key, comp in C.COMPONENTS.items():
         targettype = "dll" if "stub" in comp else MMP.parse(os.path.join(MMP.BASE, comp["mmp"])).targettype
+        if targettype == "lib":
+            continue              # no ROM image or staged ROM files, even if an old image still exists
         rom = C.rom_name(key, targettype)
         img = os.path.join(REPO, "emitter", rom)
         zname = SLOT.get(rom, rom).lower()      # one ROM name once (Z: is case-blind)

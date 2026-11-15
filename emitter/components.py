@@ -16,6 +16,9 @@ Fields:
     rom_data    data files the component needs in the ROM: ["Z path=repo-relative file", ...] (kernel/rom_args.py)
     export_archives  True: .def names the archives (libgcc, libsupc++ with rtti) define are exported too
     unwinder    True: links libgcc's real EHABI personality routines (drtaeabi), not toolchain/dll_rt/unwind_markers.cpp
+    c_sources   True: the mmp's .c files compile as C (gnu89), as abld built them (estlib, Open C), not as C++
+    cxx_runtime True: C++ exceptions with the runtime imported from DRTAEABI.DLL (__cxa_*, the EHABI personality
+                routines), not a private libsupc++ copy
     stub    UID3: a generated DLL <key>.dll with that UID and every export unimplemented (a library the release has no
             source for, which old binaries load -- emitter/build_mmp.py stub_project)
     no_gcchelp  True: without the kernel's gcchelp.cpp (its per-image operator new/delete): scppnwdl, which is them

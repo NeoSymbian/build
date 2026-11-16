@@ -14,7 +14,7 @@
 #                                default symbian), monitor on 4444, screen and
 #                                serial in out/live/ (watch from a laptop: tools/live/syborg-live.sh, tools/live/mon.sh)
 #
-# BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito). KERNEL = the kernel checkout
+# BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito, sargo). KERNEL = the kernel checkout
 # (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
 # USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE. SCREEN=WxH sizes `boot`/`live`.
 set -eu
@@ -50,7 +50,7 @@ qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
 		sh baseport/arm64/tools/run-qemu.sh "${1:-60}" ;;
 flash)   BOARD=${1:-bonito}
 	exec python3 -I "$KERNEL/baseport/arm64/tools/phone.py" run "$KERNEL/out/ekern-$BOARD/boot.img" \
-		--log "$KERNEL/out/ekern-$BOARD/phone.log" --secs "${SECS:-30}" ${STAY:+--stay} ;;
+		--log "$KERNEL/out/ekern-$BOARD/phone.log" --secs "${SECS:-30}" --product "$BOARD" ${STAY:+--stay} ;;
 live)    if [ "${1:-}" = stop ]; then docker rm -f neosymbian-live >/dev/null && echo "neosymbian-live stopped"; exit 0; fi
 	[ -f "$HERE/out/minigui.rom" ] || { echo "no out/minigui.rom: neo rom first" >&2; exit 1; }
 	L=$HERE/out/live; mkdir -p "$L"

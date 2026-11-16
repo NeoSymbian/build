@@ -25,6 +25,9 @@ FLAG_EPT_EKA2 = 0x1 << 5       # bits 5-7 entry-point type: >=1 = EKA2
 FLAG_HDRFMT_J = 0x1 << 24      # bits 24-27 header format: 1 = J
 FLAG_HDRFMT_V = 0x2 << 24      # bits 24-27 header format: 2 = V
 FLAG_IMPFMT_ELF = 0x1 << 28    # bits 28-31 import format: 0 = PE, 1 = ELF, 2 = PE2 (f32image.h)
+# KImageSMPSafe: our images are SMP-safe (the 2010 sources and ours); the kernel runs a process that loads an image
+# without it (an old .sis app) in its SMP-unsafe compatibility mode, one CPU at a time (EKernelConfigSMPUnsafeCompat)
+FLAG_SMP_SAFE = 0x00004000
 
 # Recommended flags for a minimal EABI/EKA2 EXE, V-format, uncompressed.
 FLAGS_DEFAULT_EXE = FLAG_ABI_EABI | FLAG_EPT_EKA2 | FLAG_HDRFMT_V  # 0x02000028
@@ -335,7 +338,8 @@ def build_dll(code: bytes, exports: list[int], *,
     # ELF import format: the import blocks hold code-word offsets (ELF-style). A PE flag makes the loader look for an
     # import address table after iTextSize and fail an image loaded from a drive with KErrCorrupt (f32image.h
     # ValidateImports); the ROM builder ignores the flag.
-    hdr.flags = FLAG_ABI_EABI | FLAG_EPT_EKA2 | FLAG_HDRFMT_V | FLAG_IMPFMT_ELF | (0 if exe else FLAG_DLL)
+    hdr.flags = (FLAG_ABI_EABI | FLAG_EPT_EKA2 | FLAG_HDRFMT_V | FLAG_IMPFMT_ELF | FLAG_SMP_SAFE
+                 | (0 if exe else FLAG_DLL))
     if stack_size is not None:
         hdr.stack_size = stack_size
     if heap_min is not None:

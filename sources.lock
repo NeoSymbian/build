@@ -1,7 +1,7 @@
 # package<TAB>commit -- the NeoSymbian forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
 # (<package>@<tag>: a second checkout of the same fork at another commit, in src/<package>@<tag>)
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
-oss.FCL.sf.os.kernelhwsrv	974f7d9e61949ef53b0728eaade3134c3088db17
+oss.FCL.sf.os.kernelhwsrv	c0800f19a6d00008d52aa15fa1bcdac4060dcb5b
 oss.FCL.sf.os.ossrv	e227db5be2850ebe1dafdac99702d62b5697ece8
 oss.FCL.sf.os.persistentdata	ef8baa21cee9cd1e214e1a7986595c60b3a63271
 oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
@@ -11,9 +11,9 @@ oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
 symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
 oss.FCL.sf.mw.uiresources	9f6169049958cc2de74e7647ab58a0be405c7452
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
-oss.FCL.sf.os.mmaudio	a39c075cce88671b23d13598fda2f7cbf008f3bb
+oss.FCL.sf.os.mmaudio	e570595482ceae175114d67b26c23eceab4354b0
 oss.FCL.sf.os.mmimaging	dcc68da0bf7c10c664c864262d3213b5b30124c9
-oss.FCL.sf.mw.classicui	ebc5bf1a158c93e15584f879abea46c2bd0d4ab6
+oss.FCL.sf.mw.classicui	154740e7d32036ba9ffd3d3992a0c14c66d534e1
 oss.FCL.sf.mw.appsupport	d87d1ec34b649aa0273fa0015eb14a78a6c9d76e
 oss.FCL.sf.mw.inputmethods	508e00db21aeb38a26e5d4826dc4df871da84867
 oss.FCL.sf.mw.hapticsservices	385e5617a81eb3eeb8970c5aaed4cc4187436e6e
@@ -34,8 +34,8 @@ oss.FCL.sf.mw.svgt	d0f718b5f3f3eb09fe8834033e926be60bd0185e
 oss.FCL.sf.mw.uitools	32b8b16c02195b3da66ffaa80aced45037cfd8b1
 oss.FCL.sf.app.contacts	22bf872e5efd0796d5a6deb8e918837c7507b658
 oss.FCL.sf.mw.classicui@master	dcea899751dfa099dcca7a5508cf32eab64afa7a
-oss.FCL.sf.os.cellularsrv	c5d3b232c696abcd1e6c161878d4cbbcb73043cd
+oss.FCL.sf.os.cellularsrv	23c32d6b3e736c5a3d8bbd99b846d5223b998663
 oss.FCL.sf.mw.phonesrv	44089abe398e782d843559f79784c9b6b2c3f271
 oss.FCL.sf.mw.usbservices	ea7d525c670f4cca267f70a29b3dfa47da0e9130
 oss.FCL.sf.os.fshell	8536b2c40b48c5bc6bf65f0a6ce4548fe743ae7e
-legacy	4a0753e33966bff1e46ae7e35aed365dbc381f7f
+legacy	b873c783020a2328eafa430551c144814a57593d

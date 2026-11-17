@@ -2,7 +2,7 @@
 
 Builds every EXE listed in rust/exes.txt, one per line (blank lines and # comments ignored):
 
-    <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES]
+    <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [libs=libc,libpthread,...]
 
 <lib.a> is relative to rust/, built for armv5te-none-eabi; `-` links no Rust at all (a C++-only test program that
 needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Without a glue file the Rust library
@@ -12,6 +12,8 @@ EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp
 --xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
 image: Sys/Bin/<NAME>=emitter/<name>.exe per line). `stack=` sets the main thread's stack (default 128 KB, for Slint;
 both kernels take up to 1 MB: Syborg's multiple memory model refused more than 80 KB before kernel 9641bd04).
+`libs=` names more DLLs to import from, as an mmp's LIBRARY (any registered component with a frozen .def, e.g. P.I.P.S.'s
+libc, libpthread, libm: browser.md WB2); the glue then also sees P.I.P.S.'s headers (epoc32/include/stdapis).
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]
 """
@@ -51,6 +53,9 @@ RUNTIME_SOURCES = [
     os.path.join(EE, "crt_shim.cpp"),
 ]
 GLUE_FLAGS = [f"-I{os.path.join(SRC, 'kernel', 'eka', 'include')}"]
+# with libs=: P.I.P.S. (Open C) headers; they mark float functions __SOFTFP (RVCT's __softfp), ours is softfp already
+STDAPIS = os.path.join(REPO, ".epoc32", "include", "stdapis")
+PIPS_FLAGS = [f"-I{STDAPIS}", f"-I{os.path.join(REPO, '.epoc32', 'include')}", "-D__SOFTFP="]
 
 
 def _symcc(src: str, obj: str, flags: list[str]) -> str:
@@ -89,7 +94,7 @@ def _link(
 
 def parse_manifest(
     path: str,
-) -> list[tuple[str, int, str | None, str | None, str, int]]:
+) -> list[tuple[str, int, str | None, str | None, str, int, list[str]]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -101,9 +106,10 @@ def parse_manifest(
         rest = [t for t in f[3:] if "=" not in t]
         drive = opts.pop("drive", "z").lower()
         stack = int(opts.pop("stack", str(STACK_SIZE)), 0)
+        libs = [x for x in opts.pop("libs", "").split(",") if x]
         if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c"):
             sys.exit(
-                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES]"
+                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [libs=a,b]"
             )
         name, uid3 = f[0], int(f[1], 0)
         lib = None if f[2] == "-" else os.path.join(RUST_DIR, f[2])
@@ -115,7 +121,7 @@ def parse_manifest(
         glue = os.path.join(REPO, rest[0]) if rest else None
         if not (lib or glue):
             sys.exit(f"{path}:{n}: {name}: no Rust library (-) needs a glue file")
-        exes.append((name.upper(), uid3, lib, glue, drive, stack))
+        exes.append((name.upper(), uid3, lib, glue, drive, stack, libs))
     if len({e[1] for e in exes}) != len(exes):
         sys.exit(f"{path}: duplicate uid3")
     return exes
@@ -128,6 +134,7 @@ def build_one(
     glue: str | None,
     runtime: list[str],
     stack: int = STACK_SIZE,
+    libs: list[str] | None = None,
 ) -> bool:
     stem = name.split(".")[0].lower()
     workdir = BE.workdir("rust_" + stem)
@@ -135,7 +142,9 @@ def build_one(
     if glue:
         objs.append(
             _symcc(
-                glue, os.path.join(workdir, os.path.basename(glue) + ".o"), GLUE_FLAGS
+                glue,
+                os.path.join(workdir, os.path.basename(glue) + ".o"),
+                GLUE_FLAGS + (PIPS_FLAGS if libs else []),
             )
         )
 
@@ -143,6 +152,19 @@ def build_one(
     _link(objs, lib, elf1, ignore_unresolved=True)
     undefined = sorted(BE._nm("--undefined-only", elf1) - {""})
     imports, unmapped = devlink.split_missing(undefined, own_dll=stem + ".exe")
+    dll_order = [devlink.EUSER_DLL, devlink.EFSRV_DLL, devlink.HAL_DLL, devlink.EFILE_EXE]
+    if libs and unmapped:
+        # the extra DLLs, resolved from their frozen .def files as an mmp's LIBRARY list is (euser keeps its names)
+        import build_mmp
+
+        extra, roms = build_mmp.provider_maps(libs)
+        data = sorted(n for n in unmapped if n in extra and n in build_mmp.DATA_EXPORTS)
+        if data:
+            # shortcut: function imports only (each import is a code veneer); add data imports when one is needed
+            sys.exit(f"{name}: DATA imports not supported: {', '.join(data)}")
+        imports.update({n: extra[n] for n in unmapped if n in extra})
+        unmapped = [n for n in unmapped if n not in extra]
+        dll_order += [r for r in roms if r not in dll_order]
     if unmapped:
         sys.exit(
             f"{name}: imports with NO ordinal provider:\n  " + "\n  ".join(unmapped)
@@ -156,7 +178,7 @@ def build_one(
     if ENTRY_NAME not in ext.symbols:
         sys.exit(f"{name}: required symbol {ENTRY_NAME!r} not in ELF")
 
-    import_list = devlink.import_blocks(ext, imports)
+    import_list = devlink.import_blocks(ext, imports, dll_order=tuple(dll_order))
     n_imp = sum(len(e) for _, e in import_list)
     print(
         f"{name} uid3=0x{uid3:08X} "
@@ -212,16 +234,16 @@ def main() -> int:
         for s in RUNTIME_SOURCES
     ]
     results = [  # build every EXE even when one fails its check
-        build_one(name, uid3, lib, glue, runtime, stack)
-        for name, uid3, lib, glue, _, stack in exes
+        build_one(name, uid3, lib, glue, runtime, stack, libs)
+        for name, uid3, lib, glue, _, stack, libs in exes
     ]
     ok = all(results)
 
     def img(name: str) -> str:
         return f"emitter/{name.split('.')[0].lower()}.exe"
 
-    rom = [n for n, _, _, _, d, _ in exes if d == "z"]
-    cdrive = [n for n, _, _, _, d, _ in exes if d == "c"]
+    rom = [n for n, _, _, _, d, _, _ in exes if d == "z"]
+    cdrive = [n for n, _, _, _, d, _, _ in exes if d == "c"]
     with open(ROM_ARGS, "w") as fh:
         fh.writelines(f"--xip\nSys\\Bin\\{n}={img(n)}\n" for n in rom)
     with open(CDRIVE_ARGS, "w") as fh:

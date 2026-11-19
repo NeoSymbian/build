@@ -96,6 +96,12 @@ def _link(
     subprocess.run(args, check=True)
 
 
+def _weak_undefined(elf: str) -> set[str]:
+    """The weak undefined symbols of `elf` (nm's `w`/`v`)."""
+    out = subprocess.run([BE.NM, "--undefined-only", elf], check=True, capture_output=True, text=True).stdout
+    return {p[-1] for p in (line.split() for line in out.splitlines()) if len(p) >= 2 and p[-2] in ("w", "v")}
+
+
 def parse_manifest(
     path: str,
 ) -> list[tuple[str, int, str | None, str | None, str, int, list[str], int]]:
@@ -156,7 +162,8 @@ def build_one(
 
     elf1 = os.path.join(workdir, stem + ".pass1.elf")
     _link(objs, lib, elf1, ignore_unresolved=True)
-    undefined = sorted(BE._nm("--undefined-only", elf1) - {""})
+    # weak references (aws-lc's optional OPENSSL_memory_* hooks) are not imports: ld makes them 0 in pass 2
+    undefined = sorted(BE._nm("--undefined-only", elf1) - {""} - _weak_undefined(elf1))
     imports, unmapped = devlink.split_missing(undefined, own_dll=stem + ".exe")
     dll_order = [devlink.EUSER_DLL, devlink.EFSRV_DLL, devlink.HAL_DLL, devlink.EFILE_EXE]
     if libs and unmapped:

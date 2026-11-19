@@ -3,7 +3,7 @@
 
 TARGET          neonet.dll
 TARGETTYPE      dll
-UID             0x1000008d 0xE0004002
+UID             0x1000008d 0xE000400A
 CAPABILITY      ALL -TCB
 SOURCEPATH      .
 SOURCE          neonet.cpp

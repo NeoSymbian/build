@@ -248,6 +248,8 @@ def data_lines(path: str) -> list[str]:
             line = line.split("#", 1)[0].strip()
             if not line:
                 continue
+            if any(ord(c) < 32 for c in line):
+                raise SystemExit(f"{path}:{n}: a control character (an echo that read \\f as an escape?)")
             z, sep, src = line.partition("=")
             if not sep or not z.strip() or not src.strip() or os.path.isabs(src.strip()) or ".." in src:
                 raise SystemExit(f"{path}:{n}: want <Z: path>=<file under rust/>")

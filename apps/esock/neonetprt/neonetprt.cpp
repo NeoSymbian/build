@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // neonetprt.cpp -- NEONET.PRT: ESOCK's KAfInet protocol module (TCP, UDP, the host resolver) over NeoNet, the
-// phone's IP stack in NEONET.EXE (docs wifi.md W5a). No TCPIP6, no NIF: every socket call becomes a NeoNet call
+// phone's IP stack in NEONET.EXE (docs hardware/wifi.md W5a). No TCPIP6, no NIF: every socket call becomes a NeoNet call
 // through NEONET.DLL, and ESOCK's own connection stack is NEOTIER.DLL's always-up one. The module runs in ESOCK's
 // IP data thread, so nothing here blocks: each waiting NeoNet call is an active object (CNeoOp) whose completion
 // becomes an MSocketNotify up-call. A socket's waiting calls are cancelled by closing its NeoNet socket (NEONET then

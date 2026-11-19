@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEOCDB.EXE -- CommsDat for ESOCK over NeoNet (docs wifi.md W5a): see neocdb.cpp.
+// NEOCDB.EXE -- CommsDat for ESOCK over NeoNet (docs hardware/wifi.md W5a): see neocdb.cpp.
 
 TARGET          neocdb.exe
 TARGETTYPE      exe

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEOSOCK.EXE -- ESOCK over NeoNet, end to end through the 2010 socket API (docs wifi.md W5a): RSocketServ and its
+// NEOSOCK.EXE -- ESOCK over NeoNet, end to end through the 2010 socket API (docs hardware/wifi.md W5a): RSocketServ and its
 // protocols, RConnection Start/Stop, RHostResolver, TCP listen/accept/connect/write/read and UDP send-to/receive-from,
 // all on 127.0.0.1 when NEONET runs its loopback interface (Syborg). On a real link (the phone: smoltcp has no loopback
 // there) it instead fetches http://connectivitycheck.gstatic.com/generate_204 over TCP and asks the gateway's DNS for

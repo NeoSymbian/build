@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEOTIER.DLL -- ESOCK's always-up tier for NeoNet (docs wifi.md W5a): see neotier.cpp.
+// NEOTIER.DLL -- ESOCK's always-up tier for NeoNet (docs hardware/wifi.md W5a): see neotier.cpp.
 
 TARGET          neotier.dll
 TARGETTYPE      PLUGIN

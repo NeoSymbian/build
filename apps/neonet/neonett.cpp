@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEONETT.EXE -- NEONET.DLL's test on the phone (docs wifi.md W7): waits for an address, resolves a name, fetches
+// NEONETT.EXE -- NEONET.DLL's test on the phone (docs hardware/wifi.md W7): waits for an address, resolves a name, fetches
 // http://connectivitycheck.gstatic.com/generate_204 over TCP and asks the gateway's DNS for it over UDP. Prints
 // "neonett: ..." lines and "neonett: PASS" or "neonett: FAIL <step> <error>" to the debug log.
 #include <e32base.h>

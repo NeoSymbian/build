@@ -132,7 +132,7 @@ from fshell_components import COMPONENTS as FSHELL_COMPONENTS  # noqa: E402
 
 COMPONENTS.update(FSHELL_COMPONENTS)
 
-# ESOCK over NeoNet (docs wifi.md W5a/W7; emitter/comms_components.py)
+# ESOCK over NeoNet (docs hardware/wifi.md W5a/W7; emitter/comms_components.py)
 from comms_components import COMPONENTS as COMMS_COMPONENTS  # noqa: E402
 
 COMPONENTS.update(COMMS_COMPONENTS)

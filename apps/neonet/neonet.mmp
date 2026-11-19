@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEONET.DLL -- the C++ client of NeoNet (docs wifi.md W7): see neonet.h.
+// NEONET.DLL -- the C++ client of NeoNet (docs hardware/wifi.md W7): see neonet.h.
 
 TARGET          neonet.dll
 TARGETTYPE      dll

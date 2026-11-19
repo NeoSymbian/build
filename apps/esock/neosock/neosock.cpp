@@ -3,7 +3,8 @@
 // protocols, RConnection Start/Stop, RHostResolver, TCP listen/accept/connect/write/read and UDP send-to/receive-from,
 // all on 127.0.0.1 when NEONET runs its loopback interface (Syborg). On a real link (the phone: smoltcp has no loopback
 // there) it instead fetches http://connectivitycheck.gstatic.com/generate_204 over TCP and asks the gateway's DNS for
-// that name over UDP. Prints "neosock: ..." lines and "neosock: PASS" or "neosock: FAIL <step> <error>".
+// that name over UDP. Then TCP the way P.I.P.S. drives it, on a plain socket and on one opened on the RConnection
+// ("neosock: pips ..." lines, browser WB2d). Prints "neosock: ..." lines and "neosock: PASS" or "neosock: FAIL <step> <error>".
 #include <e32base.h>
 #include <e32debug.h>
 #include <es_sock.h>
@@ -137,7 +138,7 @@ static void DnsQuery(TDes8& aOut)
 	aOut.Copy(q, sizeof(q));
 	}
 
-static TInt Internet(RSocketServ& aSs, TUint32 aGateway)
+static TInt Internet(RSocketServ& aSs, TUint32 aGateway, TInetAddr& aTarget)
 	{
 	RHostResolver hr;
 	TInt r = hr.Open(aSs, KAfInet, KProtocolInetUdp);
@@ -150,6 +151,7 @@ static TInt Internet(RSocketServ& aSs, TUint32 aGateway)
 		return Fail("resolve", r);
 	hr.Close();
 	TInetAddr addr(TInetAddr::Cast(entry().iAddr).Address(), 80);
+	aTarget = addr;
 	RSocket sock;
 	if ((r = sock.Open(aSs, KAfInet, KSockStream, KProtocolInetTcp)) != KErrNone)
 		return Fail("http open", r);
@@ -185,6 +187,103 @@ static TInt Internet(RSocketServ& aSs, TUint32 aGateway)
 		return Fail("dns recv", r);
 	RDebug::Printf("neosock: udp ok (%d-byte DNS answer from port %d)", answer.Length(), from.Port());
 	udp.Close();
+	return KErrNone;
+	}
+
+// one step of the P.I.P.S. pass: printed before (a hang shows as the last line) and after, the first failure kept
+static void Step(TInt& aFirst, const char* aMode, const char* aStep, TInt aResult, TInt aExpected = KErrNone)
+	{
+	RDebug::Printf("neosock: pips %s %s %d", aMode, aStep, aResult);
+	if (aResult != aExpected && aFirst == KErrNone)
+		aFirst = aResult < 0 ? aResult : KErrGeneral;
+	}
+
+static TInt PipsOpen(RSocket& aSock, RSocketServ& aSs, RConnection* aConn)
+	{
+	return aConn ? aSock.Open(aSs, KAfInet, KSockStream, KProtocolInetTcp, *aConn)
+		: aSock.Open(aSs, KAfInet, KSockStream, KProtocolInetTcp);
+	}
+
+// a connection to aListener (Syborg) is accepted and dropped, so the next connect finds the listener free
+static void Drop(RSocketServ& aSs, RSocket* aListener)
+	{
+	if (!aListener)
+		return;
+	RSocket s;
+	if (s.Open(aSs) != KErrNone)
+		return;
+	TRequestStatus st;
+	aListener->Accept(s, st);
+	if (Wait(st, 5) == KErrTimedOut)
+		aListener->CancelAccept();
+	s.Close();
+	}
+
+// TCP the way P.I.P.S. drives it (ossrv usocket.cpp): the socket opened on the default RConnection (aConn) or plain,
+// bind, a blocking connect; then a non-blocking connect, a select for write|except and KSOSelectLastError
+static TInt Pips(RSocketServ& aSs, RConnection* aConn, const TInetAddr& aTo, RSocket* aListener)
+	{
+	const char* mode = aConn ? "conn" : "plain";
+	TInt first = KErrNone;
+	RSocket sock;
+	RDebug::Printf("neosock: pips %s open ...", mode);
+	TInt r = PipsOpen(sock, aSs, aConn);
+	Step(first, mode, "open", r);
+	if (r != KErrNone)
+		return first;
+	TInetAddr any(KInetAddrAny, 0);
+	Step(first, mode, "bind", sock.Bind(any));
+	TRequestStatus s;
+	TInetAddr to(aTo);
+	sock.Connect(to, s);
+	Step(first, mode, "connect", Wait(s, 20));
+	sock.Close();
+	Drop(aSs, aListener);
+
+	RSocket nb;
+	if ((r = PipsOpen(nb, aSs, aConn)) != KErrNone)
+		{
+		Step(first, mode, "nb open", r);
+		return first;
+		}
+	Step(first, mode, "nb setopt", nb.SetOpt(KSONonBlockingIO, KSOLSocket));
+	nb.Connect(to, s);
+	User::WaitForRequest(s);
+	Step(first, mode, "nb connect", s.Int(), KErrWouldBlock);
+	TPckgBuf<TUint> flags(KSockSelectWrite | KSockSelectExcept);
+	nb.Ioctl(KIOctlSelect, s, &flags, KSOLSocket);
+	Step(first, mode, "nb select", Wait(s, 20));
+	RDebug::Printf("neosock: pips %s nb select flags %x", mode, flags());
+	TInt last = -1;
+	Step(first, mode, "nb lasterror", nb.GetOpt(KSOSelectLastError, KSOLSocket, last));
+	Step(first, mode, "nb lasterror value", last);
+	nb.Close();
+	Drop(aSs, aListener);
+	return first;
+	}
+
+// both passes, against 127.0.0.1:8082 (a listener of our own) or aTarget on a real link
+static TInt PipsPasses(RSocketServ& aSs, RConnection& aConn, TBool aLoopback, const TInetAddr& aTarget)
+	{
+	RSocket listener;
+	TInetAddr to(aTarget);
+	if (aLoopback)
+		{
+		TInt r = listener.Open(aSs, KAfInet, KSockStream, KProtocolInetTcp);
+		TInetAddr any(KInetAddrAny, 8082);
+		if (r != KErrNone || (r = listener.Bind(any)) != KErrNone || (r = listener.Listen(1)) != KErrNone)
+			return Fail("pips listen", r);
+		to = TInetAddr(INET_ADDR(127, 0, 0, 1), 8082);
+		}
+	RSocket* l = aLoopback ? &listener : NULL;
+	TInt plain = Pips(aSs, NULL, to, l);
+	TInt conn = Pips(aSs, &aConn, to, l);
+	listener.Close();
+	if (plain != KErrNone)
+		return Fail("pips plain", plain);
+	if (conn != KErrNone)
+		return Fail("pips conn", conn);
+	RDebug::Printf("neosock: pips ok");
 	return KErrNone;
 	}
 
@@ -247,7 +346,10 @@ static TInt RunL()
 	hr.Close();
 	RDebug::Printf("neosock: resolver ok (localhost)");
 
-	if ((r = loopback ? Loopback(ss) : Internet(ss, gateway)) != KErrNone)
+	TInetAddr target;
+	if ((r = loopback ? Loopback(ss) : Internet(ss, gateway, target)) != KErrNone)
+		return r;
+	if ((r = PipsPasses(ss, conn, loopback, target)) != KErrNone)
 		return r;
 	conn.Stop();
 	conn.Close();

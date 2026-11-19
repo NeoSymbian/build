@@ -97,21 +97,20 @@ void CNeoSap::Cancelled(CNeoOp::TKind aKind)
 		CloseSocket();
 	}
 
+// ESOCK starts a SAP once a socket sits on it. An accepted connection gets its notifier earlier, while it waits on
+// the listener's queue with no socket above (its shim would fault on an up-call), so it receives from the start but
+// what came before is announced only now
 void CNeoSap::Start()
 	{
-	StartRecv();
-	}
-
-// an accepted connection receives from the start; what came before ESOCK gave it a notifier is announced now
-void CNeoSap::SetNotify(MSocketNotify* aSocket)
-	{
-	CServProviderBase::SetNotify(aSocket);
-	if (!aSocket)
-		return;
-	if (iRxReady)
+	iStarted = ETrue;
+	if (iSocket && iPendingError != KErrNone)
+		iSocket->Error(iPendingError, MSocketNotify::EErrorRecv);
+	else if (iSocket && iRxReady)
 		iSocket->NewData(Stream() ? iRxPtr.Length() - iRxPos : 1);
-	else if (iEof)
+	else if (iSocket && iEof)
 		iSocket->NewData(KNewDataEndofData);
+	iPendingError = KErrNone;
+	StartRecv();
 	}
 
 void CNeoSap::LocalName(TSockAddr& aAddr) const
@@ -206,7 +205,22 @@ TInt CNeoSap::PassiveOpen(TUint /*aQueSize*/)
 	{
 	if (!Stream())
 		return KErrNotSupported;
-	TInt r = iSession->iNet.TcpListen(iLocal.Port());			// shortcut: one waiting connection (NeoNet's backlog)
+	// shortcut: one waiting connection (NeoNet's backlog)
+	TInt r;
+	if (iLocal.Port() == 0)
+		{
+		// bound to port 0 (std, Tokio: bind then listen): an ephemeral port below NeoNet's own (49152 up, for its
+		// outgoing connections), the next one while NeoNet says it is in use; getsockname reports it
+		const TUint KFirst = 32768, KCount = 16384;
+		TUint port = KFirst + User::FastCounter() % KCount;
+		TInt tries = 64;
+		while ((r = iSession->iNet.TcpListen(port)) == KErrInUse && --tries > 0)
+			port = KFirst + (port - KFirst + 1) % KCount;
+		if (r >= 0)
+			iLocal.SetPort(port);
+		}
+	else
+		r = iSession->iNet.TcpListen(iLocal.Port());
 	if (r < 0)
 		return r;
 	iId = r;
@@ -377,8 +391,12 @@ void CNeoSap::Done(CNeoOp::TKind aKind, TInt aResult)
 			StartRecv();											// a datagram too big for us: dropped
 			return;
 			}
-		if (!iSocket)
-			return;													// SetNotify announces it
+		if (!iSocket || !iStarted)
+			{
+			if (aResult < 0)
+				iPendingError = aResult;
+			return;													// Start announces it
+			}
 		if (aResult < 0)
 			iSocket->Error(aResult, MSocketNotify::EErrorRecv);
 		else if (iEof)

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEOTIER.DLL's ECom registration (neotier.cpp): the tier manager and the MCPR.
+// NEOTIER.DLL's ECom registration (neotier.cpp): the tier managers (tier 2048 and the link tier), the MCPR and the
+// link flow.
 #include <ecom/registryinfo.rh>
 
 RESOURCE REGISTRY_INFO theInfo
@@ -19,6 +20,14 @@ RESOURCE REGISTRY_INFO theInfo
 					display_name = "NeoNet Tier Manager";
 					default_data = "NeoNetTierManager";
 					opaque_data = "";
+					},
+				IMPLEMENTATION_INFO
+					{
+					implementation_uid = 0x0E00400B;
+					version_no = 1;
+					display_name = "NeoNet Link Tier Manager";
+					default_data = "NeoNetLinkTierManager";
+					opaque_data = "";
 					}
 				};
 			},
@@ -33,6 +42,21 @@ RESOURCE REGISTRY_INFO theInfo
 					version_no = 1;
 					display_name = "NeoNet MCPR";
 					default_data = "NeoNetMCpr";
+					opaque_data = "";
+					}
+				};
+			},
+		INTERFACE_INFO
+			{
+			interface_uid = 0x10281C33;		// flow factories
+			implementations =
+				{
+				IMPLEMENTATION_INFO
+					{
+					implementation_uid = 0x0E00400C;
+					version_no = 1;
+					display_name = "NeoNet Link Flow";
+					default_data = "NeoNetLinkFlow";
 					opaque_data = "";
 					}
 				};

@@ -4,8 +4,12 @@
 // always match this CommsDat's schema:
 //   MCPR (neotier's), CPR and SCPR (the core vanilla ones), the transport flow shim (Protocol);
 //   access point 10000 "NeoNet" with those; tier 2048 (KAfInet: implicit sockets and resolvers) with neotier's tier
-//   manager, running in ESock_IP, its default access point 10000; GlobalSettings' default tier = 2048.
-// Done once: an existing tier 2048 means the database is set up (it persists on C:). Prints "neocdb: ..." lines.
+//   manager, running in ESock_IP, its default access point 10000; GlobalSettings' default tier = 2048;
+//   the link layer under it (browser WB2d): tier 0x0E00400D with neotier's link tier manager, access point 10001
+//   "NeoNetLink" whose flow is neotier's link flow, and access point 10000's next layer = 10001 (custom selection
+//   policy: the access point's tag, read by the MCPR's simple selection).
+// Each part is done once: the database persists on C:, and one set up before the link layer gains it here.
+// Prints "neocdb: ..." lines.
 #include <e32base.h>
 #include <e32debug.h>
 #include <commsdattypesv1_1.h>
@@ -21,6 +25,10 @@ const TUint KMCprUid = 0x0E004006;						// neotier.dll
 const TUint KCprUid = 0x102822F3;						// coreprovidersecom: vanilla CPR
 const TUint KSCprUid = 0x102822F4;						// coreprovidersecom: vanilla SCPR
 const TUint KFlowShimUid = 0x101F7482;					// esocksvr: the transport flow shim
+const TUint KLinkTierTag = 0x0E00400D;					// the link tier (private)
+const TUint KLinkApTag = 10001;
+const TUint KLinkTierManagerUid = 0x0E00400B;			// neotier.dll
+const TUint KLinkFlowUid = 0x0E00400C;					// neotier.dll: the link flow's factory
 
 template <class T> static T* NewRecordLC(TMDBElementId aType)
 	{
@@ -65,60 +73,113 @@ static TMDBElementId UidRecordL(CMDBSession& aDb, TMDBElementId aType, const TDe
 	return id;
 	}
 
-static void SetUpL()
+static TBool TierPresentL(CMDBSession& aDb, TUint aTag)
 	{
-	CMDBSession* db = CMDBSession::NewLC(KCDVersion1_2);
 	CCDTierRecord* tier = NewRecordLC<CCDTierRecord>(KCDTIdTierRecord);
-	tier->iRecordTag = KTierTag;
-	if (tier->FindL(*db))
-		{
-		RDebug::Printf("neocdb: tier 2048 present (tier manager %08x): nothing to do", (TUint)tier->iTierImplUid);
-		CleanupStack::PopAndDestroy(2, db);
-		return;
-		}
-	db->OpenTransactionL();
-	TMDBElementId mcpr = UidRecordL(*db, KCDTIdMCprRecord, _L("neonetmcpr"), KMCprUid);
-	TMDBElementId cpr = UidRecordL(*db, KCDTIdCprRecord, _L("vanillacpr"), KCprUid);
-	TMDBElementId scpr = UidRecordL(*db, KCDTIdSCprRecord, _L("vanillascpr"), KSCprUid);
-	TMDBElementId shim = UidRecordL(*db, KCDTIdProtocolRecord, _L("sapshim"), KFlowShimUid);
+	tier->iRecordTag = aTag;
+	TBool found = tier->FindL(aDb);
+	CleanupStack::PopAndDestroy(tier);
+	return found;
+	}
 
-	SetName(*tier, _L("NeoNetTier"));
-	tier->iRecordTag = KTierTag;
-	tier->iTierImplUid = KTierManagerUid;
+// a tier with neotier's tier manager aTmUid, and its default access point aApTag with the given providers and flow
+static TMDBElementId TierAndApL(CMDBSession& aDb, TUint aTierTag, TUint aTmUid, const TDesC& aTierName,
+	const TDesC& aTmName, TUint aApTag, const TDesC& aApName, TMDBElementId aMCpr, TMDBElementId aCpr,
+	TMDBElementId aSCpr, TMDBElementId aFlow, TInt aNextApTag)
+	{
+	CCDTierRecord* tier = NewRecordLC<CCDTierRecord>(KCDTIdTierRecord);
+	SetName(*tier, aTierName);
+	tier->iRecordTag = aTierTag;
+	tier->iTierImplUid = aTmUid;
 	SetText(tier->iTierThreadName, _L("ESock_IP"));
-	SetText(tier->iTierManagerName, _L("NeoNetTierManager"));
+	SetText(tier->iTierManagerName, aTmName);
 	tier->iPromptUser = EFalse;
-	TMDBElementId tierId = StoreL(*db, *tier);
+	TMDBElementId tierId = StoreL(aDb, *tier);
 
 	CCDAccessPointRecord* ap = NewRecordLC<CCDAccessPointRecord>(KCDTIdAccessPointRecord);
-	SetName(*ap, _L("NeoNet"));
-	ap->iRecordTag = KApTag;
+	SetName(*ap, aApName);
+	ap->iRecordTag = aApTag;
 	ap->iTier = tierId;
-	ap->iMCpr = mcpr;
-	ap->iCpr = cpr;
-	ap->iSCpr = scpr;
-	ap->iProtocol = shim;
-	TMDBElementId apId = StoreL(*db, *ap);
+	ap->iMCpr = aMCpr;
+	ap->iCpr = aCpr;
+	ap->iSCpr = aSCpr;
+	ap->iProtocol = aFlow;
+	ap->iCustomSelectionPolicy = aNextApTag;
+	TMDBElementId apId = StoreL(aDb, *ap);
 	CleanupStack::PopAndDestroy(ap);
 
 	tier->iDefaultAccessPoint = apId;
-	tier->ModifyL(*db);
+	tier->ModifyL(aDb);
+	CleanupStack::PopAndDestroy(tier);
+	return tierId;
+	}
+
+// tier 2048 and access point 10000, over the link layer
+static void SetUpInetL(CMDBSession& aDb)
+	{
+	TMDBElementId mcpr = UidRecordL(aDb, KCDTIdMCprRecord, _L("neonetmcpr"), KMCprUid);
+	TMDBElementId cpr = UidRecordL(aDb, KCDTIdCprRecord, _L("vanillacpr"), KCprUid);
+	TMDBElementId scpr = UidRecordL(aDb, KCDTIdSCprRecord, _L("vanillascpr"), KSCprUid);
+	TMDBElementId shim = UidRecordL(aDb, KCDTIdProtocolRecord, _L("sapshim"), KFlowShimUid);
+	TMDBElementId tierId = TierAndApL(aDb, KTierTag, KTierManagerUid, _L("NeoNetTier"), _L("NeoNetTierManager"),
+		KApTag, _L("NeoNet"), mcpr, cpr, scpr, shim, KLinkApTag);
 
 	CCDGlobalSettingsRecord* gs = NewRecordLC<CCDGlobalSettingsRecord>(KCDTIdGlobalSettingsRecord);
 	gs->SetRecordId(1);
-	TRAPD(r, gs->LoadL(*db));
+	TRAPD(r, gs->LoadL(aDb));
 	gs->iDefaultTier = tierId;
 	if (r == KErrNone)
-		gs->ModifyL(*db);
+		gs->ModifyL(aDb);
 	else
 		{
 		SetName(*gs, _L("Global settings"));
-		gs->StoreL(*db);
+		gs->StoreL(aDb);
 		}
 	CleanupStack::PopAndDestroy(gs);
+	RDebug::Printf("neocdb: CommsDat set up: tier 2048, access point %d", KApTag);
+	}
+
+// the link tier and access point 10001; an access point 10000 from before the link layer gets it as its next layer
+static void SetUpLinkL(CMDBSession& aDb, TBool aOldInet)
+	{
+	TMDBElementId mcpr = UidRecordL(aDb, KCDTIdMCprRecord, _L("neonetlinkmcpr"), KMCprUid);
+	TMDBElementId cpr = UidRecordL(aDb, KCDTIdCprRecord, _L("vanillalinkcpr"), KCprUid);
+	TMDBElementId scpr = UidRecordL(aDb, KCDTIdSCprRecord, _L("vanillalinkscpr"), KSCprUid);
+	TMDBElementId flow = UidRecordL(aDb, KCDTIdProtocolRecord, _L("neonetlinkflow"), KLinkFlowUid);
+	TierAndApL(aDb, KLinkTierTag, KLinkTierManagerUid, _L("NeoNetLinkTier"), _L("NeoNetLinkTierManager"), KLinkApTag,
+		_L("NeoNetLink"), mcpr, cpr, scpr, flow, 0);					// 0: the bottom, no next layer
+	if (aOldInet)
+		{
+		CCDAccessPointRecord* ap = NewRecordLC<CCDAccessPointRecord>(KCDTIdAccessPointRecord);
+		ap->iRecordTag = KApTag;
+		if (!ap->FindL(aDb))
+			User::Leave(KErrNotFound);
+		ap->iCustomSelectionPolicy = KLinkApTag;
+		ap->ModifyL(aDb);
+		CleanupStack::PopAndDestroy(ap);
+		}
+	RDebug::Printf("neocdb: link layer set up: tier %08x, access point %d%s", KLinkTierTag, KLinkApTag,
+		aOldInet ? " (access point 10000 now over it)" : "");
+	}
+
+static void SetUpL()
+	{
+	CMDBSession* db = CMDBSession::NewLC(KCDVersion1_2);
+	TBool inet = TierPresentL(*db, KTierTag);
+	TBool link = TierPresentL(*db, KLinkTierTag);
+	if (inet && link)
+		{
+		RDebug::Printf("neocdb: tier 2048 and the link tier present: nothing to do");
+		CleanupStack::PopAndDestroy(db);
+		return;
+		}
+	db->OpenTransactionL();
+	if (!link)
+		SetUpLinkL(*db, inet);
+	if (!inet)
+		SetUpInetL(*db);
 	db->CommitTransactionL();
-	RDebug::Printf("neocdb: CommsDat set up: tier %08x, access point %08x", tierId, apId);
-	CleanupStack::PopAndDestroy(2, db);
+	CleanupStack::PopAndDestroy(db);
 	}
 
 GLDEF_C TInt E32Main()

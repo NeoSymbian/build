@@ -46,7 +46,6 @@ public:
 	static CNeoSap* NewL(TUint aSockType, CNeoSession* aSession = NULL);
 	~CNeoSap();
 	// CServProviderBase
-	void SetNotify(MSocketNotify* aSocket);
 	void Start();
 	void LocalName(TSockAddr& aAddr) const;
 	TInt SetLocalName(TSockAddr& aAddr);
@@ -89,6 +88,8 @@ private:
 	TPtr8 iRxPtr;
 	TInt iRxPos;
 	TBool iRxReady;
+	TBool iStarted;							// ESOCK called Start: up-calls may go to iSocket
+	TInt iPendingError;						// a receive error before Start
 	HBufC8* iTx;							// bytes in flight to NEONET
 	TPtr8 iTxPtr;
 	TPtrC8 iTxRest;							// what NEONET hasn't taken yet

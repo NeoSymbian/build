@@ -10,7 +10,9 @@ defines E32Main itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_
 EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp), import veneers from the frozen
 .def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name>, emitter/rust_rom.args (the
 --xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
-image: Sys/Bin/<NAME>=emitter/<name>.exe per line). `stack=` sets the main thread's stack (default 128 KB, for Slint;
+image: Sys/Bin/<NAME>=emitter/<name>.exe per line). An optional rust/data.txt adds plain files to the ROM, one
+`<Z: path>=<file under rust/>` per line (e.g. `Resource\\NeoWeb\\Fonts\\DejaVuSans.ttf=fonts/DejaVuSans.ttf`): the
+browser's fonts and pages. `stack=` sets the main thread's stack (default 128 KB, for Slint;
 both kernels take up to 1 MB: Syborg's multiple memory model refused more than 80 KB before kernel 9641bd04).
 `libs=` names more DLLs to import from, as an mmp's LIBRARY (any registered component with a frozen .def, e.g. P.I.P.S.'s
 libc, libpthread, libm: browser.md WB2); the glue then also sees P.I.P.S.'s headers (epoc32/include/stdapis).
@@ -229,6 +231,25 @@ def build_one(
     return result.ok
 
 
+def data_lines(path: str) -> list[str]:
+    """rust/data.txt as --data lines for the ROM: `<Z: path>=<file under rust/>` per line (# comments, blanks)."""
+    if not os.path.isfile(path):
+        return []
+    out = []
+    with open(path) as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            z, sep, src = line.partition("=")
+            if not sep or not z.strip() or not src.strip() or os.path.isabs(src.strip()) or ".." in src:
+                raise SystemExit(f"{path}:{n}: want <Z: path>=<file under rust/>")
+            if not os.path.isfile(os.path.join(os.path.dirname(path), src.strip())):
+                raise SystemExit(f"{path}:{n}: no file rust/{src.strip()}")
+            out.append(f"--data\n{z.strip()}=rust/{src.strip()}\n")
+    return out
+
+
 def main() -> int:
     manifest = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RUST_DIR, "exes.txt")
     exes = parse_manifest(manifest)
@@ -250,6 +271,7 @@ def main() -> int:
     cdrive = [n for n, _, _, _, d, _, _, _ in exes if d == "c"]
     with open(ROM_ARGS, "w") as fh:
         fh.writelines(f"--xip\nSys\\Bin\\{n}={img(n)}\n" for n in rom)
+        fh.writelines(data_lines(os.path.join(RUST_DIR, "data.txt")))
     with open(CDRIVE_ARGS, "w") as fh:
         fh.writelines(f"Sys/Bin/{n}={img(n)}\n" for n in cdrive)
     print(f"{ROM_ARGS}: {len(rom)} EXEs in the ROM; {CDRIVE_ARGS}: {len(cdrive)} on C:")

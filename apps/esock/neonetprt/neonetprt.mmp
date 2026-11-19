@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEONET.PRT -- ESOCK's KAfInet protocol module over NeoNet (docs wifi.md W5a): see neonetprt.cpp.
+// NEONET.PRT -- ESOCK's KAfInet protocol module over NeoNet (docs hardware/wifi.md W5a): see neonetprt.cpp.
 
 TARGET          neonet.prt
 TARGETTYPE      dll

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// neonet.h -- NEONET.DLL: the C++ client of NeoNet, the phone's IP stack over Wi-Fi (NEONET.EXE, docs wifi.md W5/W7),
+// neonet.h -- NEONET.DLL: the C++ client of NeoNet, the phone's IP stack over Wi-Fi (NEONET.EXE, docs hardware/wifi.md W5/W7),
 // for 2010-style C++ programs and ESOCK's neonet.prt. One RNeoNet session serves any number of sockets; a socket is
 // a small id owned by the session (closed with it). Every call maps 1:1 onto a NeoNet op (neolink crates/net
 // proto.rs). The waiting ops complete their TRequestStatus with a count, an id or an error; closing a socket

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// neotier.cpp -- NEOTIER.DLL (ECom), the always-up connection stack under ESOCK for NeoNet (docs wifi.md W5a): tier
+// neotier.cpp -- NEOTIER.DLL (ECom), the always-up connection stack under ESOCK for NeoNet (docs hardware/wifi.md W5a): tier
 // 2048 (KAfInet) gets our tier manager, whose selector always picks the tier's default access point, whatever the
 // preferences (an IAP, a SNAP, none); the access point's MCPR is ours too, the core MCPR with nothing below it. The
 // core vanilla CPR and SCPR (coreprovidersecom) and the transport flow shim (esocksvr) complete the stack; sockets

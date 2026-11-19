@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// NEOCDB.EXE -- CommsDat for ESOCK over NeoNet (docs wifi.md W5a). The ROM's CommsDat repository is the 2010 empty one
+// NEOCDB.EXE -- CommsDat for ESOCK over NeoNet (docs hardware/wifi.md W5a). The ROM's CommsDat repository is the 2010 empty one
 // (policies only); at boot (NEONET.EXE starts this) the records are written through the CommsDat API itself, so they
 // always match this CommsDat's schema:
 //   MCPR (neotier's), CPR and SCPR (the core vanilla ones), the transport flow shim (Protocol);

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""comms_components -- the 2010 socket server (ESOCK) without TCPIP6 or a NIF (docs wifi.md W5a/W7, the gate in
+"""comms_components -- the 2010 socket server (ESOCK) without TCPIP6 or a NIF (docs hardware/wifi.md W5a/W7, the gate in
 "W5a: ESOCK over NeoNet"): the comms process (c32start, c32exe and the root server), the comms framework elements,
 ESOCK with the core providers, CommsDat and the commdb shim, insock, and their non-comms dependencies. Our own parts:
 neonet.prt (KAfInet: TCP, UDP and the resolver over NEONET.EXE), neotier.dll (the always-up tier manager and MCPR),

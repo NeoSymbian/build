@@ -78,6 +78,9 @@ def _link(
         "-nostdlib",
         "-Wl,-q",
         "-Wl,--gc-sections",
+        # long-branch veneers PC-relative: a `bl` reaches +-32 MB, and ld's absolute veneers carry an address -q
+        # never emits a relocation for (an EXE over 32 MB, NEOWEBE, jumped to its unrelocated ELF address)
+        "-Wl,--pic-veneer",
         "-Wl,--no-demangle",
         # Rust objects say 4-byte wchar_t (Tag_ABI_PCS_wchar_t); no wchar_t crosses into Symbian code
         "-Wl,--no-wchar-size-warning",

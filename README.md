@@ -41,7 +41,7 @@ a new one).
   and the Rust repos listed in `rust/revs.txt` (one `repo commit` line each; whoever copies the staticlibs writes it).
 - `./neo kernel` adds the kernel commit and the image flags, in the kernel's `out/ekern-<board>/manifest.txt`.
 - When a build is installed, commit that file as `releases/<name>.txt`.
-- `./neo diff NAME1 NAME2` then lists, per repo, the commits between the two.
+- `./neo diff NAME1 NAME2` then lists, per repo, the commits between the two and their GitHub compare link.
 
 `boot.sh` uses the emulator image from [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu), whose README also
 explains how to run it by hand and watch it live. The CI does exactly these three steps on every push and keeps the

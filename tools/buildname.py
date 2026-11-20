@@ -72,6 +72,13 @@ TAILS = [
 GITHUB = {"oss.FCL.sf.os.kernelhwsrv": "kernel"}
 
 
+def github(key):
+    """The NeoSymbian repo behind a manifest key: "kernel" itself, a sources.lock package ("<package>@<tag>" is a
+    second checkout of the same fork) or a Rust repo."""
+    repo = key.split("@", 1)[0]
+    return GITHUB.get(repo, repo)
+
+
 def used_names(releases=RELEASES):
     try:
         return {f[:-4] for f in os.listdir(releases) if f.endswith(".txt")}
@@ -123,7 +130,7 @@ def compare(repo, a, b):
             [
                 "gh",
                 "api",
-                f"repos/NeoSymbian/{GITHUB.get(repo, repo)}/compare/{a}...{b}",
+                f"repos/NeoSymbian/{github(repo)}/compare/{a}...{b}",
             ],
             capture_output=True,
             text=True,
@@ -151,7 +158,12 @@ def diff(a_text, b_text, count=compare):
             else None
         )
         more = f"  ({n} commits)" if n is not None else ""
-        out.append(f"  {key:<34} {va} -> {vb}{more}")
+        link = (
+            f"  https://github.com/NeoSymbian/{github(key)}/compare/{va}...{vb}"
+            if "-" not in (va, vb) and not key.startswith("flag.")
+            else ""
+        )
+        out.append(f"  {key:<34} {va} -> {vb}{more}{link}")
     return "\n".join(out)
 
 
@@ -187,7 +199,12 @@ def selftest():
     d = diff(
         img, b + "files 8df1ced\n", count=lambda r, _a, _b: 3 if r == "neoui" else None
     )
-    assert "neoui                              0ca50cf -> 1111111  (3 commits)" in d, d
+    assert (
+        "neoui                              0ca50cf -> 1111111  (3 commits)"
+        "  https://github.com/NeoSymbian/neoui/compare/0ca50cf...1111111" in d
+    ), d
+    assert github("oss.FCL.sf.mw.classicui@master") == "oss.FCL.sf.mw.classicui", github("x@y")
+    assert github("oss.FCL.sf.os.kernelhwsrv") == github("kernel") == "kernel"
     assert (
         "kernel                             2d3343a2 -> 34ed0aa6" in d
         and "legacy" in d

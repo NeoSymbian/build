@@ -15,7 +15,7 @@ mkdir -p out
 # build info (the ROM's \Resource\NeoSymbian\build.txt): this checkout's commit, +dirty if it differs from it
 REV=$(git rev-parse --short HEAD 2>/dev/null) || REV=unknown
 [ "$REV" = unknown ] || git diff --quiet HEAD -- 2>/dev/null || REV="$REV+dirty"
-# named builds (tools/buildname.py): NAME=2026-11-20-otterfox goes first in build.txt; out/manifest.txt lists every repo's commit
-python3 -I tools/buildname.py manifest out/manifest.txt || echo "build.sh: no out/manifest.txt (python3?)" >&2
+# named builds (tools/buildname.py): NAME=2026-11-20-otterfox goes first in build.txt; out/manifest.txt lists every
+# repo's commit (written in the container, which has python3)
 exec docker run --rm -e FULL="${FULL:-}" -e NEO_BUILD_NAME="${NAME:-}" -e SIS="${SIS:-}" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" -e NEO_BUILD_REV="$REV" -e BASE_OUT="${BASE_OUT:-}" \
 	-v "$PWD:/work" -v "${BUILD_VOLUME:-neosymbian-build}:/build" -w /work "$IMAGE" bash scripts/build-in-container.sh

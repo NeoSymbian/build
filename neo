@@ -39,6 +39,13 @@ kdocker() {	# kdocker <script> [args]: run a kernel tool in the image, the kerne
 		"$BUILD_IMAGE" sh "baseport/arm64/tools/$@"
 }
 
+pyrun() {	# python3 here, or in the build image when the host has none (atlas build pods)
+	if command -v python3 >/dev/null 2>&1; then python3 -I "$@"; else
+		user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"
+		# shellcheck disable=SC2086
+		docker run --rm $user -v "$HERE:$HERE" -v "$KERNEL:$KERNEL" "$BUILD_IMAGE" python3 -I "$@"; fi
+}
+
 case $cmd in
 fetch)   exec sh "$HERE/fetch.sh" ;;
 rom)     exec sh "$HERE/build.sh" ;;
@@ -49,10 +56,10 @@ kernel)  BOARD=${1:-qemu} kdocker build-ekern.sh
 	flags=""; for v in USBDEBUG AUTOFASTBOOT EMMC_C ROFS ROFS_CORE ROFS_INSTALL; do eval "val=\${$v:-}"; [ -z "$val" ] || flags="$flags $v=$val"; done
 	krev=$(git -c safe.directory='*' -C "$KERNEL" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
 	# shellcheck disable=SC2086
-	python3 -I "$HERE/tools/buildname.py" kernel "$HERE/out/manifest.txt" "$krev" "$KERNEL/out/ekern-${1:-qemu}/manifest.txt" $flags \
+	pyrun "$HERE/tools/buildname.py" kernel "$HERE/out/manifest.txt" "$krev" "$KERNEL/out/ekern-${1:-qemu}/manifest.txt" $flags \
 		|| echo "neo: no image manifest (python3?)" >&2 ;;
-name)    exec python3 -I "$HERE/tools/buildname.py" name ;;
-diff)    exec python3 -I "$HERE/tools/buildname.py" diff "$@" ;;
+name)    pyrun "$HERE/tools/buildname.py" name ;;
+diff)    pyrun "$HERE/tools/buildname.py" diff "$@" ;;
 nkernsa) BOARD=${1:-qemu} kdocker build-kernel.sh ;;
 qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
 	t=""; [ -t 0 ] && t=-it	# interactive when run from a terminal (type into the serial console)

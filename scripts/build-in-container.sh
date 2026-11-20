@@ -33,5 +33,6 @@ fi
 mkdir -p /work/out
 rm -rf /work/out/log
 cp -a /build/out/. /work/out/
+NAME="${NEO_BUILD_NAME:-}" python3 -I /work/tools/buildname.py manifest /work/out/manifest.txt || true
 chown -R "${HOST_UID:-0}:${HOST_GID:-0}" /work/out 2>/dev/null || true
 exit $rc

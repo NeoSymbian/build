@@ -2,7 +2,7 @@
 # (<package>@<tag>: a second checkout of the same fork at another commit, in src/<package>@<tag>)
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
 oss.FCL.sf.os.kernelhwsrv	d13d70ee84ac518fa944f2bf1c8eff87bfa6dea1
-oss.FCL.sf.os.ossrv	1d580619697aa33156a58d026ce3adf380fc7697
+oss.FCL.sf.os.ossrv	00d888ebee5951ea25d519f4c9777942ec459d8a
 oss.FCL.sf.os.persistentdata	ef8baa21cee9cd1e214e1a7986595c60b3a63271
 oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
 oss.FCL.sf.os.graphics	a111d1239fc1141bd7d90c4c5445e7ae4423a795

@@ -2,7 +2,7 @@
 
 Builds every EXE listed in rust/exes.txt, one per line (blank lines and # comments ignored):
 
-    <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=libc,libpthread,...]
+    <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=libc,libpthread,...] [caps=A,B]
 
 <lib.a> is relative to rust/, built for armv5te-none-eabi; `-` links no Rust at all (a C++-only test program that
 needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Without a glue file the Rust library
@@ -18,6 +18,7 @@ both kernels take up to 1 MB: Syborg's multiple memory model refused more than 8
 libc, libpthread, libm: browser.md WB2); the glue then also sees P.I.P.S.'s headers (epoc32/include/stdapis).
 `heap=` sets the most the EXE's own heap may grow to (default 1 MB). A Rust EXE with std needs it: std's allocator is
 P.I.P.S.'s malloc on that heap (e32's chunk heap is off under std; docs browser-std.md, WB2c).
+`caps=` gives a drive=c EXE capabilities by name (e.g. NetworkServices for sockets); ROM EXEs get all of them anyway.
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]
 """
@@ -115,9 +116,27 @@ def _weak_undefined(elf: str) -> set[str]:
     return {p[-1] for p in (line.split() for line in out.splitlines()) if len(p) >= 2 and p[-2] in ("w", "v")}
 
 
+# TCapability bit numbers (e32capability.h), for caps= of drive=c EXEs (ROM EXEs get every capability from rombuild)
+CAPABILITIES = (
+    "TCB CommDD PowerMgmt MultimediaDD ReadDeviceData WriteDeviceData DRM TrustedUI ProtServ DiskAdmin NetworkControl "
+    "AllFiles SwEvent NetworkServices LocalServices ReadUserData WriteUserData Location SurroundingsDD UserEnvironment"
+).split()
+
+
+def parse_caps(text: str) -> int:
+    """caps=NetworkServices,ReadUserData -> the image header's first capability word."""
+    names = {c.lower(): i for i, c in enumerate(CAPABILITIES)}
+    bits = 0
+    for c in filter(None, text.split(",")):
+        if c.lower() not in names:
+            raise ValueError(f"unknown capability {c!r}")
+        bits |= 1 << names[c.lower()]
+    return bits
+
+
 def parse_manifest(
     path: str,
-) -> list[tuple[str, int, str | None, str | None, str, int, list[str], int]]:
+) -> list[tuple[str, int, str | None, str | None, str, int, list[str], int, int]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -131,9 +150,13 @@ def parse_manifest(
         stack = int(opts.pop("stack", str(STACK_SIZE)), 0)
         libs = [x for x in opts.pop("libs", "").split(",") if x]
         heap = int(opts.pop("heap", str(HEAP_MAX)), 0)
+        try:
+            caps = parse_caps(opts.pop("caps", ""))
+        except ValueError as e:
+            sys.exit(f"{path}:{n}: {e}")
         if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c") or heap < HEAP_MIN:
             sys.exit(
-                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=a,b]"
+                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=a,b] [caps=A,B]"
             )
         name, uid3 = f[0], int(f[1], 0)
         lib = None if f[2] == "-" else os.path.join(RUST_DIR, f[2])
@@ -145,7 +168,7 @@ def parse_manifest(
         glue = os.path.join(REPO, rest[0]) if rest else None
         if not (lib or glue):
             sys.exit(f"{path}:{n}: {name}: no Rust library (-) needs a glue file")
-        exes.append((name.upper(), uid3, lib, glue, drive, stack, libs, heap))
+        exes.append((name.upper(), uid3, lib, glue, drive, stack, libs, heap, caps))
     if len({e[1] for e in exes}) != len(exes):
         sys.exit(f"{path}: duplicate uid3")
     return exes
@@ -160,6 +183,7 @@ def build_one(
     stack: int = STACK_SIZE,
     libs: list[str] | None = None,
     heap: int = HEAP_MAX,
+    caps: int = 0,
 ) -> bool:
     stem = name.split(".")[0].lower()
     workdir = BE.workdir("rust_" + stem)
@@ -233,6 +257,7 @@ def build_one(
         stack_size=stack,
         heap_min=HEAP_MIN,
         heap_max=heap,
+        cap1=caps,
         imports=import_list,
         code_relocs=ext.code_relocs,
         code_base=ext.code_base,
@@ -281,16 +306,16 @@ def main() -> int:
         for s in RUNTIME_SOURCES
     ]
     results = [  # build every EXE even when one fails its check
-        build_one(name, uid3, lib, glue, runtime, stack, libs, heap)
-        for name, uid3, lib, glue, _, stack, libs, heap in exes
+        build_one(name, uid3, lib, glue, runtime, stack, libs, heap, caps)
+        for name, uid3, lib, glue, _, stack, libs, heap, caps in exes
     ]
     ok = all(results)
 
     def img(name: str) -> str:
         return f"emitter/{name.split('.')[0].lower()}.exe"
 
-    rom = [n for n, _, _, _, d, _, _, _ in exes if d == "z"]
-    cdrive = [n for n, _, _, _, d, _, _, _ in exes if d == "c"]
+    rom = [n for n, _, _, _, d, *_ in exes if d == "z"]
+    cdrive = [n for n, _, _, _, d, *_ in exes if d == "c"]
     with open(ROM_ARGS, "w") as fh:
         fh.writelines(f"--xip\nSys\\Bin\\{n}={img(n)}\n" for n in rom)
         fh.writelines(data_lines(os.path.join(RUST_DIR, "data.txt")))

@@ -55,7 +55,7 @@ EXPORTS="${EXPORTS#:}"
 ARGS=.ekern-build/rombuild.args
 # NeoSymbian build info: the user-side ROM's build time and this repo's commit (build.sh), read by neoui's About phone
 # and Dev tools; the phone keeps it in the core ROM (kernel build-userrom.sh)
-printf 'rom %s build %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "${NEO_BUILD_REV:-unknown}" > .ekern-build/build.txt
+printf '%srom %s build %s\n' "${NEO_BUILD_NAME:+$NEO_BUILD_NAME: }" "$(date -u +%Y-%m-%dT%H:%MZ)" "${NEO_BUILD_REV:-unknown}" > .ekern-build/build.txt
 {
   printf '%s\n' \
     --xip 'Sys\Bin\euser.dll=emitter/euser_dev.dll' \

@@ -32,6 +32,17 @@ inside the NeoSymbian build image ([docker/toolchain](docker/toolchain), publish
 The first build takes a few minutes on a big machine, or up to 20 on a laptop. After that only what changed gets
 rebuilt, and `FULL=1 ./build.sh` starts from scratch. Every step logs to `out/log/`.
 
+### Named builds
+
+Each phone image can have a name: a date plus an invented animal, e.g. `2026-11-20-otterfox` (`./neo name` suggests
+a new one).
+- `NAME=… ./neo rom` puts the name first in the ROM's build line, which Settings → About phone shows.
+- It also writes `out/manifest.txt` with the commit of every repo that went in: this repo, the `sources.lock` pins,
+  and the Rust repos listed in `rust/revs.txt` (one `repo commit` line each; whoever copies the staticlibs writes it).
+- `./neo kernel` adds the kernel commit and the image flags, in the kernel's `out/ekern-<board>/manifest.txt`.
+- When a build is installed, commit that file as `releases/<name>.txt`.
+- `./neo diff NAME1 NAME2` then lists, per repo, the commits between the two and their GitHub compare link.
+
 `boot.sh` uses the emulator image from [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu), whose README also
 explains how to run it by hand and watch it live. The CI does exactly these three steps on every push and keeps the
 screenshot and the serial log.

@@ -70,6 +70,13 @@ def _symcc(src: str, obj: str, flags: list[str]) -> str:
     return obj
 
 
+def _registrations(lib: str | None) -> list[str]:
+    """The inventory crate's constructor statics (`__CTOR`, global) defined in the Rust staticlib."""
+    if not lib:
+        return []
+    return sorted(n for n in BE._nm("--defined-only", lib) if n.endswith("___CTOR") or n.endswith("__CTORE"))
+
+
 def _link(
     objs: list[str], lib: str | None, out_elf: str, ignore_unresolved: bool
 ) -> None:
@@ -89,6 +96,9 @@ def _link(
         "-march=armv5te",
         "-marm",
         *objs,
+        # inventory's registrations (Servo's resource reader...): a constructor in .init_array whose object no symbol
+        # pulls from the staticlib; rustc keeps such #[used] statics with its symbols.o, this link must name them
+        *[f"-Wl,-u,{n}" for n in _registrations(lib)],
         *([lib] if lib else []),
         BE._libgcc(),
         "-o",

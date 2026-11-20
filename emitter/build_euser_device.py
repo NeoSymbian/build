@@ -119,8 +119,11 @@ def _extra_flags_tu(basename: str) -> list[str]:
         # FAST_EXEC1(EFastExecFastAtomic*)) and our v7 kernel's fast exec table has no such entries, so the first
         # __e32_atomic_* call dies KERN-EXEC 27. ARMV7 selects the real LDREX/STREX bodies. It also keeps the fast
         # locks (RFastLock Wait/Signal) off SWP.
+        # __SMP__ adds the DMBs to RFastLock (the heap's lock), RequestComplete and the _acq/_rel/_ord atomics: without
+        # them the Pixel's 8 cores reorder data around the locks (US0, docs user-side-smp.md). cpudefs.h allows __SMP__
+        # only on Cortex-A9/ARM11MP, so A9 replaces A8N: same ARMv7 user code, the A9 extras are kernel-only CP15 macros.
         return flags + ["-march=armv7-a", "-mno-unaligned-access",
-                "-U__MARM_ARMV5__", "-D__MARM_ARMV7__", "-D__CPU_CORTEX_A8N__"]
+                "-U__MARM_ARMV5__", "-D__MARM_ARMV7__", "-D__CPU_CORTEX_A9__", "-D__SMP__"]
     return flags
 
 

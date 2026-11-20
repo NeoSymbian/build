@@ -43,6 +43,7 @@ SKIP_DIRS = {"test", "tsrc", "tests", "documentation", "examples", "internal"}
 # its comms-infras/mbufpanic.h (no EMBuf_IndexOutofRange) overwrote the current one whenever os.walk reached it last
 SKIP_PATHS = {os.path.join(BASE, "oss.FCL.sf.os.commsfw", "commsfwutils", "commsbufs", "version1")}
 SECTION = re.compile(r"^\s*PRJ_(\w+)", re.I)
+CPP_ERRORS = {}   # bld.inf -> cpp's first error, for the last preprocess of it (empty when it preprocessed cleanly)
 
 
 def preprocess(path, old_location):
@@ -74,6 +75,9 @@ def preprocess(path, old_location):
                         "-include", os.path.join(PATHS_DIR, "platform_paths.hrh"), src],
                        input=stdin, cwd=d if stdin is not None else None,
                        capture_output=True, text=True, errors="replace")
+    # cpp stops at the first missing #include: everything the bld.inf exports after it would be lost silently
+    CPP_ERRORS[path] = "" if r.returncode == 0 else next(
+        (ln for ln in r.stderr.splitlines() if "error" in ln), r.stderr.strip()[:200])
     out = r.stdout
     if stdin is not None:
         out = out.replace('"<stdin>"', '"' + path + '"')
@@ -149,33 +153,73 @@ def exports(bldinf, old_location):
         yield src, rel
 
 
-def run(pkgs, old_location):
-    n_inf = n_new = n_same = n_missing = 0
+def seed():
+    """the headers every bld.inf preprocess includes. bldvariant.hrh includes variant/Symbian_OS.hrh: without it in
+    place before the walk, every bld.inf that includes <bldvariant.hrh> failed on a cold build and exported nothing
+    (aknlayout2's aknlayoutscalable_*.cdl.common.h among them; casefix then linked an older per-variant copy)."""
+    os.makedirs(os.path.join(OUT, "variant"), exist_ok=True)
+    shutil.copy2(os.path.join(PATHS_DIR, "platform_paths.hrh"), os.path.join(OUT, "platform_paths.hrh"))
+    shutil.copy2(VARIANT, os.path.join(OUT, "variant", "Symbian_OS.hrh"))
+
+
+def ntfs(name):
+    """the order Windows lists a directory in (case-insensitive); the exact name breaks case-only ties"""
+    return name.upper(), name
+
+
+def bld_infs(pkgs):
+    """every bld.inf of the packages in NTFS order (as tools/mbg.py walks): when two bld.infs export the same header
+    the later copy wins, and os.walk's file-system order made that differ between machines"""
     for pkg in pkgs:
         for root, dirs, files in os.walk(os.path.join(BASE, pkg)):
-            dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS and d != ".git" and os.path.join(root, d) not in SKIP_PATHS]
-            for f in files:
-                if f.lower() != "bld.inf":
-                    continue
-                n_inf += 1
-                for src, rel in exports(os.path.join(root, f), old_location):
-                    if not os.path.isfile(src):
-                        n_missing += 1
-                        continue
-                    dst = os.path.join(OUT, rel.replace("/", os.sep).lower())
-                    if os.path.exists(dst) and filecmp.cmp(src, dst, shallow=False):
-                        n_same += 1
-                        continue
-                    os.makedirs(os.path.dirname(dst), exist_ok=True)
-                    shutil.copy2(src, dst)
-                    n_new += 1
+            dirs[:] = sorted((d for d in dirs if d.lower() not in SKIP_DIRS and d != ".git"
+                              and os.path.join(root, d) not in SKIP_PATHS), key=ntfs)
+            for f in sorted(files, key=ntfs):
+                if f.lower() == "bld.inf":
+                    yield os.path.join(root, f)
+
+
+def run(pkgs, old_location):
+    n = {"inf": 0, "new": 0, "same": 0, "missing": 0}
+
+    def export_one(bldinf):
+        """copy one bld.inf's exports; False when cpp failed on it (its exports after the error are missing)"""
+        for src, rel in exports(bldinf, old_location):
+            if not os.path.isfile(src):
+                n["missing"] += 1
+                continue
+            dst = os.path.join(OUT, rel.replace("/", os.sep).lower())
+            if os.path.exists(dst) and filecmp.cmp(src, dst, shallow=False):
+                n["same"] += 1
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            n["new"] += 1
+        return not CPP_ERRORS.get(bldinf)
+
+    seed()
+    failed = []
+    for bldinf in bld_infs(pkgs):
+        n["inf"] += 1
+        if not export_one(bldinf):
+            failed.append(bldinf)
+    # A failed bld.inf may include a header that a later one exported, or one whose spelling only resolves through
+    # .casefix (bldvariant.hrh's #include "ProductVariant.hrh" is exported as productvariant.hrh): on a cold build
+    # .casefix is still empty here (its own step runs later), so refresh it from the tree so far and retry while
+    # that helps. A warm build passed only because the previous run's .casefix was still there.
+    import casefix
+    while failed:
+        casefix.main()
+        still = [b for b in failed if not export_one(b)]
+        if len(still) == len(failed):
+            break
+        failed = still
     # several packages export the same name; the Symbian (cedarutils) platform_paths.hrh must win
-    shutil.copy2(os.path.join(PATHS_DIR, "platform_paths.hrh"), os.path.join(OUT, "platform_paths.hrh"))
-    # bldvariant.hrh expects the OS variant at variant/Symbian_OS.hrh
-    os.makedirs(os.path.join(OUT, "variant"), exist_ok=True)
-    shutil.copy2(VARIANT, os.path.join(OUT, "variant", "Symbian_OS.hrh"))
+    seed()
     print("bld.inf: %d   exported: %d new, %d up-to-date, %d missing-src -> %s%s"
-          % (n_inf, n_new, n_same, n_missing, OUT, "  (old export location)" if old_location else ""))
+          % (n["inf"], n["new"], n["same"], n["missing"], OUT, "  (old export location)" if old_location else ""))
+    for b in failed:
+        print("  cpp failed, exports incomplete: %s: %s" % (os.path.relpath(b, BASE), CPP_ERRORS[b]))
 
 
 if __name__ == "__main__":

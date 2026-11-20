@@ -27,19 +27,39 @@ def includes_itself(path: str, spelling: str) -> bool:
     return any(m.group(1).decode("latin-1").strip().lower() == spelling.lower() for m in INCLUDE.finditer(data))
 
 
+def rank(path: str):
+    """which of several same-named headers a spelling gets: an exported one, then aknlayout2's generated_inc, then any
+    other, and aknlayout2/generated/<variant>/ last (several of those copies are older than the exported header).
+    The path breaks ties, so the choice no longer depends on the order os.walk lists a directory in."""
+    rel = os.path.relpath(path, REPO).replace(os.sep, "/")
+    if path.startswith(ROOTS[0] + os.sep):
+        tier = 0
+    elif "/layouts/aknlayout2/generated_inc/" in rel:
+        tier = 1
+    elif "/layouts/aknlayout2/generated/" in rel:
+        tier = 3
+    else:
+        tier = 2
+    return tier, rel.upper(), rel
+
+
 def main() -> None:
     by_base, by_tail = {}, {}
     scan = []
     for top in ROOTS:
         for root, dirs, files in os.walk(top):
-            dirs[:] = [d for d in dirs if d != ".git" and "@" not in d]   # not a second tree (<pkg>@master)
-            for f in files:
+            # NTFS order (case-insensitive, as tools/mbg.py walks): with rank() below, the choice no longer depends
+            # on the order the file system lists a directory in
+            dirs[:] = sorted((d for d in dirs if d != ".git" and "@" not in d),    # not a second tree (<pkg>@master)
+                             key=lambda n: (n.upper(), n))
+            for f in sorted(files, key=lambda n: (n.upper(), n)):
                 ext = os.path.splitext(f)[1].lower()
                 p = os.path.join(root, f)
                 if ext in HEADER_EXT:
                     low = f.lower()
-                    by_base.setdefault(low, p)
-                    by_tail.setdefault(os.path.basename(root).lower() + "/" + low, p)
+                    by_base[low] = min(p, by_base.get(low, p), key=rank)
+                    tail = os.path.basename(root).lower() + "/" + low
+                    by_tail[tail] = min(p, by_tail.get(tail, p), key=rank)
                 if ext in SCAN_EXT and top.endswith("src"):
                     scan.append(p)
     spellings = set()

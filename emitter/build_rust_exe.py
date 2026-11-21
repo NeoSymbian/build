@@ -15,9 +15,9 @@ image: Sys/Bin/<NAME>=emitter/<name>.exe per line). An optional rust/data.txt ad
 browser's fonts and pages. `stack=` sets the main thread's stack (default 128 KB, for Slint;
 both kernels take up to 1 MB: Syborg's multiple memory model refused more than 80 KB before kernel 9641bd04).
 `libs=` names more DLLs to import from, as an mmp's LIBRARY (any registered component with a frozen .def, e.g. P.I.P.S.'s
-libc, libpthread, libm: browser.md WB2); the glue then also sees P.I.P.S.'s headers (epoc32/include/stdapis).
+libc, libpthread, libm: browser/wb2-std.md WB2); the glue then also sees P.I.P.S.'s headers (epoc32/include/stdapis).
 `heap=` sets the most the EXE's own heap may grow to (default 1 MB). A Rust EXE with std needs it: std's allocator is
-P.I.P.S.'s malloc on that heap (e32's chunk heap is off under std; docs browser-std.md, WB2c).
+P.I.P.S.'s malloc on that heap (e32's chunk heap is off under std; docs browser/wb2-std.md, WB2c).
 `caps=` gives a drive=c EXE capabilities by name (e.g. NetworkServices for sockets); ROM EXEs get all of them anyway.
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]

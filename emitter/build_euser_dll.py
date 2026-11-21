@@ -146,7 +146,8 @@ SOURCES = [
 
 
 # The core libraries (euser, efsrv, hal) as ARMv8-A AArch32, soft-float calling convention (docs user-side-smp.md US2):
-# appended after symcc's -march=armv5te, so it wins. -mword-relocations: addresses as literal words (R_ARM_ABS32),
+# appended after symcc's -march=armv5te, so it wins. VFP/NEON and the A9 profile's user-side thread data need our
+# kernel (the phone, QEMU virt): the 2010 Syborg kernel runs neither, and is no longer a target (owner, 2026-11-21). -mword-relocations: addresses as literal words (R_ARM_ABS32),
 # which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile cpudefs.h knows for
 # ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The final links still
 # take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (a bridge until US3).

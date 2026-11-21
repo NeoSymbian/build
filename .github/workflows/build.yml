@@ -28,21 +28,8 @@ jobs:
       - name: Build the ROM
         run: BASE_OUT=${{ github.event_name == 'push' && '1' || '' }} ./build.sh
 
-      - name: Boot it on QEMU Syborg
-        run: ./boot.sh
-
-      - name: Check the boot
-        run: |
-          # the file server, the window server and the shell were started, and nothing faulted
-          grep -q '\[proc\] create .*ESHELL' out/serial.log
-          ! grep -q 'K::Fault\|Kern::Fault' out/serial.log
-          # the screen is not blank: the framebuffer holds more than one colour (text on a plain background)
-          python3 - <<'PY'
-          d = open('out/fb.ppm', 'rb').read()
-          pix = d[-768 * 640 * 3:]
-          assert len(set(pix[i:i + 3] for i in range(0, len(pix), 3))) >= 2, "screen is blank"
-          print("screen has content")
-          PY
+      # no Syborg boot: the user side is ARMv8 with VFP (docs user-side-smp.md US2), which the 2010 Syborg kernel can't
+      # run; the boot test is QEMU virt with our AArch64 kernel (below)
 
       # the 2010 user side without sources or ROM: EPL-1.0 Symbian binaries only (no Slint), its sources public
       - name: Publish the prebuilt base (ghcr.io/neosymbian/userside-base:<commit>)
@@ -75,9 +62,6 @@ jobs:
         with:
           name: boot
           path: |
-            out/fb.png
-            out/serial.log
             out/log/
-            out/qemu-monitor.log
             out/fshell-qemu.log
             out/fshell-qemu-serial.log

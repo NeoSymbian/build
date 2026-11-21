@@ -510,6 +510,12 @@ def build(key: str, rsc_only: bool = False) -> int:
         print(f"  {len(failed)}/{len(jobs)} TUs failed")
         return 1
 
+    # code built with VFP keeps values in d8-d15, which a hand-expanded TRAP (TTrap::Trap, not the overlay's
+    # NeoTrapFp) or a P.I.P.S. setjmp (core registers only) doesn't restore after a leave/longjmp: say where
+    risky = sorted(BE._nm("--undefined-only", *objs) & {"_ZN5TTrap4TrapERi", "setjmp", "_setjmp"})
+    if risky:
+        print(f"  ! VFP code calls {', '.join(risky)}: d8-d15 are not restored by it (US3)")
+
     if is_lib:
         _archive(output, objs)
         print(f"  wrote {os.path.relpath(output, REPO)} ({os.path.getsize(output)} B)")

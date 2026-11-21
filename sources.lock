@@ -21,7 +21,7 @@ oss.FCL.sf.app.utils	18752ab088dd0f4ebf65ea9403b2c8a1be892b3e
 oss.FCL.sf.app.rndtools	b6617c97263db5af5f0bbe39c52c89dc355af373
 oss.FCL.sf.mw.appinstall	8262df3e5a6536fcb9b3178be6c741061f22e69d
 oss.FCL.sf.mw.uiresources@master	b78660bec78835802edd6575b96897d4aba58376
-oss.FCL.sf.os.commsfw	bc8ac1a6d5273cbfa7852bbb8ce27d6ddc076984
+oss.FCL.sf.os.commsfw	101fa3a5b20ef0755aca89d54e4d56efc1df034f
 oss.FCL.sf.os.networkingsrv	b283ce17f27f4a95f37cdb38c6ce79d38ae6ebf9
 oss.FCL.sf.os.lbs	7190b98a3d90027016daca88f8f01d071a1f8cb1
 oss.FCL.sf.os.xmlsrv	333ed3d1a8964b73ce3424bbd46aa4dbe91f027d

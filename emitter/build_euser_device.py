@@ -55,6 +55,9 @@ DEVICE_EXTRA_SOURCES = [
     # PanicTFixedArray. uc_trp.cpp: PanicNoTrapFrame + the trap-harness C++ leaves.
     os.path.join(_EU, "us_utl.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_trp.cpp"),
+    # uc_data.cpp: TLocalThreadData's DLL TLS (DllTls/DllSetTls/DllFreeTls/Close), used since the A9 profile turns on
+    # __USERSIDE_THREAD_DATA__ (BE.V8_FLAGS)
+    os.path.join(_EU, "epoc", "arm", "uc_data.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_exec.cia"),
     os.path.join(_EU, "epoc", "arm", "uc_utl.cia"),
     os.path.join(_EU, "us_graph.cpp"),        # TRect/TPoint/TSize geometry
@@ -79,7 +82,8 @@ DEVICE_FILLIN = BE.FILLIN_BASENAMES + [os.path.basename(s) for s in DEVICE_EXTRA
 # setjmp-style TTrap::Trap/UnTrap entry points, which euseru.def does not list (an RVCT __LEAVE_EQUALS_THROW__
 # build has no such imports). EFILE.EXE imports them by ordinal, so they get spare ordinals here: the reserved slot
 # = max_ordinal+1, then these in list order (max+2, max+3). build_efile_exe.py resolves against this list.
-EXTRA_EXPORTS = ["_ZN5TTrap4TrapERi", "_ZN5TTrap6UnTrapEv"]
+# NeoTrapFp: the TRAP of code built with VFP, which also saves d8-d15 (uc_trp.cia, toolchain/overlay/e32cmn.h)
+EXTRA_EXPORTS = ["_ZN5TTrap4TrapERi", "_ZN5TTrap6UnTrapEv", "NeoTrapFp"]
 
 
 def extra_export_ordinal(name: str, max_ordinal: int) -> int:
@@ -109,10 +113,10 @@ def _extra_flags_tu(basename: str) -> list[str]:
     """Per-TU extra compiler args. dev_user_execs.cpp needs the generated-exec macro + the kinc header shim
     (u32exec.h -> exec_user.h bodies); the big grab-bag .cia files need a single .text section."""
     if basename == "dev_user_execs.cpp":
-        return ["-D__GEN_USER_EXEC_CODE__", f"-I{KINC}"]
+        return BE.V8_FLAGS + ["-D__GEN_USER_EXEC_CODE__", f"-I{KINC}"]
     if basename == "heap_hybrid.cpp":	# keeps finding its "..." headers
-        return ["-iquote", os.path.join(BE.B, "common")]
-    flags = ["-fno-function-sections", "-fno-data-sections"] if basename in _SINGLE_SECTION else []
+        return BE.V8_FLAGS + ["-iquote", os.path.join(BE.B, "common")]
+    flags = BE.V8_FLAGS + (["-fno-function-sections", "-fno-data-sections"] if basename in _SINGLE_SECTION else [])
     if basename.lower().endswith(".cia"):
         # The atomics must match the kernel's CPU configuration (Cortex-A8, kernel/link_ekern.sh EXTRA): with the
         # symcc default (__MARM_ARMV5__), cpudefs.h selects the kernel-ASSISTED atomics (atomic_*_exec.h ->
@@ -122,8 +126,7 @@ def _extra_flags_tu(basename: str) -> list[str]:
         # __SMP__ adds the DMBs to RFastLock (the heap's lock), RequestComplete and the _acq/_rel/_ord atomics: without
         # them the Pixel's 8 cores reorder data around the locks (US0, docs user-side-smp.md). cpudefs.h allows __SMP__
         # only on Cortex-A9/ARM11MP, so A9 replaces A8N: same ARMv7 user code, the A9 extras are kernel-only CP15 macros.
-        return flags + ["-march=armv7-a", "-mno-unaligned-access",
-                "-U__MARM_ARMV5__", "-D__MARM_ARMV7__", "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+        return flags + ["-U__MARM_ARMV5__", "-D__MARM_ARMV7__"]
     return flags
 
 

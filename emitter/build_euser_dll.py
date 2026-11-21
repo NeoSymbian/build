@@ -145,6 +145,15 @@ SOURCES = [
 ]
 
 
+# The core libraries (euser, efsrv, hal) as ARMv8-A AArch32, soft-float calling convention (docs user-side-smp.md US2):
+# appended after symcc's -march=armv5te, so it wins. -mword-relocations: addresses as literal words (R_ARM_ABS32),
+# which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile cpudefs.h knows for
+# ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The final links still
+# take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (a bridge until US3).
+V8_FLAGS = ["-march=armv8-a+crc+crypto", "-mfloat-abi=softfp", "-mword-relocations", "-mno-unaligned-access",
+            "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+
+
 def compile_objs(workdir: str, sources: list[str] = None,
                  fillin: list[str] = None, extra_flags=None) -> list[str]:
     """Compile every SOURCE to an ARM object; return the object paths.

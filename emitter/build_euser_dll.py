@@ -272,7 +272,7 @@ def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
 
 
 def compile_and_link(workdir: str, sources: list[str] = None,
-                     fillin: list[str] = None, extra_flags=None
+                     fillin: list[str] = None, extra_flags=None, extra_roots=()
                      ) -> tuple[bytes, list[str], set[str]]:
     """Build the ELF that backs the full euser export table.
 
@@ -289,7 +289,8 @@ def compile_and_link(workdir: str, sources: list[str] = None,
     def_names = set(defmap.by_ordinal.values())
     defined = _nm("--defined-only", *objs)
     exportable = sorted(def_names & defined)
-    roots = exportable + [SELFTEST_NAME, STUB_NAME]
+    # extra_roots: exports past the .def (build_euser_device.EXTRA_EXPORTS), kept even when euser itself doesn't call them
+    roots = exportable + [SELFTEST_NAME, STUB_NAME] + list(extra_roots)
 
     # Pass 1: tolerate unresolved to enumerate what the rooted closure still needs.
     elf1 = os.path.join(workdir, "euser0.pass1.elf")

@@ -144,7 +144,7 @@ def main() -> int:
     os.environ["SYMCC_UNWIND"] = "1"
     elf_blob, exportable, stubbed = BE.compile_and_link(
         workdir, sources=DEVICE_SOURCES, fillin=DEVICE_FILLIN,
-        extra_flags=_extra_flags)
+        extra_flags=_extra_flags, extra_roots=EXTRA_EXPORTS)
     if os.environ.get("EUSER_LIST_UNIMPL") == "1":
         for n in sorted(stubbed):
             print(f"LINKSTUB {n}")

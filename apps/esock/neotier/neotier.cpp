@@ -185,12 +185,7 @@ public:
 	virtual void Unbind(MUpperDataReceiver* /*aReceiver*/, MUpperControl* /*aControl*/)
 		{
 		if (iBinds > 0 && --iBinds == 0)
-			{
-			if (iDestroyPending)
-				DeleteThisFlow();						// the last shim is gone: the TDestroy that came meanwhile
-			else
-				iSubConnectionProvider.PostMessage(Id(), TCFControlProvider::TIdle().CRef());
-			}
+			iSubConnectionProvider.PostMessage(Id(), TCFControlProvider::TIdle().CRef());
 		}
 	virtual CSubConnectionFlowBase* Flow()
 		{
@@ -217,14 +212,7 @@ protected:
 		{
 		CSubConnectionFlowBase::ReceivedL(aSender, aRecipient, aMessage);
 		if (aMessage.IsMessage<TEChild::TDestroy>())
-			{
-			// the SCPR (ESock_IP) can decide on an earlier TIdle while a shim binds here (ESock_DIP), on another
-			// CPU: the shims hold raw pointers to this flow, so it lives until the last one unbinds
-			if (iBinds > 0)
-				iDestroyPending = ETrue;
-			else
-				DeleteThisFlow();
-			}
+			DeleteThisFlow();
 		else if (aMessage.IsMessage<TCFDataClient::TStart>())
 			iLastRequestOriginator.ReplyTo(Id(), TCFDataClient::TStarted().CRef());
 		else if (aMessage.IsMessage<TCFDataClient::TStop>())
@@ -240,7 +228,6 @@ protected:
 		}
 private:
 	TInt iBinds;
-	TBool iDestroyPending;
 	};
 
 class CNeoLinkFlowFactory : public CSubConnectionFlowFactoryBase

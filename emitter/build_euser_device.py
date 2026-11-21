@@ -55,6 +55,9 @@ DEVICE_EXTRA_SOURCES = [
     # PanicTFixedArray. uc_trp.cpp: PanicNoTrapFrame + the trap-harness C++ leaves.
     os.path.join(_EU, "us_utl.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_trp.cpp"),
+    # uc_data.cpp: TLocalThreadData's DLL TLS (DllTls/DllSetTls/DllFreeTls/Close), used since the A9 profile turns on
+    # __USERSIDE_THREAD_DATA__ (BE.V8_FLAGS)
+    os.path.join(_EU, "epoc", "arm", "uc_data.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_exec.cia"),
     os.path.join(_EU, "epoc", "arm", "uc_utl.cia"),
     os.path.join(_EU, "us_graph.cpp"),        # TRect/TPoint/TSize geometry
@@ -123,7 +126,7 @@ def _extra_flags_tu(basename: str) -> list[str]:
         # __SMP__ adds the DMBs to RFastLock (the heap's lock), RequestComplete and the _acq/_rel/_ord atomics: without
         # them the Pixel's 8 cores reorder data around the locks (US0, docs user-side-smp.md). cpudefs.h allows __SMP__
         # only on Cortex-A9/ARM11MP, so A9 replaces A8N: same ARMv7 user code, the A9 extras are kernel-only CP15 macros.
-        return flags + ["-U__MARM_ARMV5__", "-D__MARM_ARMV7__", "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+        return flags + ["-U__MARM_ARMV5__", "-D__MARM_ARMV7__"]
     return flags
 
 

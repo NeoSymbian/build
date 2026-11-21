@@ -149,12 +149,11 @@ SOURCES = [
 # -march=armv5te, so it wins. -mfloat-abi=soft for now: no VFP/NEON instructions, because the 2010 Syborg kernel the CI
 # boots has no VFP support (GCC's v8 code uses NEON even for plain copies); softfp (and with it NeoTrapFp, the TRAP that
 # keeps d8-d15) comes once the CI runs on QEMU virt with our kernel (US6b). -mword-relocations: addresses as literal
-# words (R_ARM_ABS32), which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). The instruction set only: the
-# C++ keeps the ARMv5 CPU profile, because the A9 profile moves heap, trap handler and DLL TLS into the user-side
-# thread data (TLocalThreadData), which the Syborg kernel doesn't keep (efile: E32USER-CBase 66); euser's .cia keep
-# their A9 + SMP profile (US0). The final links still take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has
-# MOVW/MOVT relocations (until US3).
-V8_FLAGS = ["-march=armv8-a+crc", "-mfloat-abi=soft", "-mword-relocations", "-mno-unaligned-access"]
+# words (R_ARM_ABS32), which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile
+# cpudefs.h knows for ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The
+# final links still take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (until US3).
+V8_FLAGS = ["-march=armv8-a+crc", "-mfloat-abi=soft", "-mword-relocations", "-mno-unaligned-access",
+            "-D__CPU_CORTEX_A9__", "-D__SMP__"]
 
 
 def compile_objs(workdir: str, sources: list[str] = None,

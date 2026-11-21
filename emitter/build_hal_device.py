@@ -60,7 +60,7 @@ def compile_objs(workdir: str) -> list[str]:
     objs = []
     for src in sources:
         obj = os.path.join(workdir, "hal_" + os.path.basename(src) + ".o")
-        subprocess.run(["bash", BE.SYMCC, src, "-O2", *extra, "-o", obj],
+        subprocess.run(["bash", BE.SYMCC, src, "-O2", *extra, *BE.V8_FLAGS, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     return objs

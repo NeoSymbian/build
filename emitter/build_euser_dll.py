@@ -145,6 +145,16 @@ SOURCES = [
 ]
 
 
+# The core libraries (euser, efsrv, hal) as ARMv8-A AArch32, soft-float calling convention (docs user-side-smp.md US2):
+# appended after symcc's -march=armv5te, so it wins. VFP/NEON and the A9 profile's user-side thread data need our
+# kernel (the phone, QEMU virt): the 2010 Syborg kernel runs neither, and is no longer a target (owner, 2026-11-21). -mword-relocations: addresses as literal words (R_ARM_ABS32),
+# which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile cpudefs.h knows for
+# ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The final links still
+# take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (a bridge until US3).
+V8_FLAGS = ["-march=armv8-a+crc+crypto", "-mfloat-abi=softfp", "-mword-relocations", "-mno-unaligned-access",
+            "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+
+
 def compile_objs(workdir: str, sources: list[str] = None,
                  fillin: list[str] = None, extra_flags=None) -> list[str]:
     """Compile every SOURCE to an ARM object; return the object paths.
@@ -263,7 +273,7 @@ def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
 
 
 def compile_and_link(workdir: str, sources: list[str] = None,
-                     fillin: list[str] = None, extra_flags=None
+                     fillin: list[str] = None, extra_flags=None, extra_roots=()
                      ) -> tuple[bytes, list[str], set[str]]:
     """Build the ELF that backs the full euser export table.
 
@@ -280,7 +290,8 @@ def compile_and_link(workdir: str, sources: list[str] = None,
     def_names = set(defmap.by_ordinal.values())
     defined = _nm("--defined-only", *objs)
     exportable = sorted(def_names & defined)
-    roots = exportable + [SELFTEST_NAME, STUB_NAME]
+    # extra_roots: exports past the .def (build_euser_device.EXTRA_EXPORTS), kept even when euser itself doesn't call them
+    roots = exportable + [SELFTEST_NAME, STUB_NAME] + list(extra_roots)
 
     # Pass 1: tolerate unresolved to enumerate what the rooted closure still needs.
     elf1 = os.path.join(workdir, "euser0.pass1.elf")

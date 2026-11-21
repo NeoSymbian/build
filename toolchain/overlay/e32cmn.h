@@ -23,9 +23,21 @@ extern "C" TInt _ZN5TTrap4TrapERi(TTrap* aThis, TInt& aResult) __attribute__((re
 #undef TRAP
 #undef TRAPD
 #undef TRAP_IGNORE
+#ifdef __ARM_FP
+// Code built with VFP (ARMv8 softfp, docs user-side-smp.md US2) keeps values in d8-d15, which are callee-saved: a leave
+// must restore them like r4-r11. TTrap has no room, so the trap frame gets 64 bytes after it and NeoTrapFp (euser
+// uc_trp.cia) saves d8-d15 there; the leave puts them back.
+extern "C" TInt NeoTrapFp(TTrap* aThis, TInt& aResult) __attribute__((returns_twice));
+struct TNeoTrapFp { TTrap iTrap; TUint64 iFp[8]; };
+#define NEO_TRAP_FP 1	// for the 2010 code that expands a TRAP by hand (euser ub_act.cpp)
+#define TRAP(_r,_s) {TNeoTrapFp __t;if (NeoTrapFp(&__t.iTrap,_r)==0){_s;TTrap::UnTrap();}}
+#define TRAPD(_r,_s) TInt _r;{TNeoTrapFp __t;if (NeoTrapFp(&__t.iTrap,_r)==0){_s;TTrap::UnTrap();}}
+#define TRAP_IGNORE(_s) {TInt _ignore;TNeoTrapFp __t;if (NeoTrapFp(&__t.iTrap,_ignore)==0){_s;TTrap::UnTrap();}}
+#else
 #define TRAP(_r,_s) {TTrap __t;if (_ZN5TTrap4TrapERi(&__t,_r)==0){_s;TTrap::UnTrap();}}
 #define TRAPD(_r,_s) TInt _r;{TTrap __t;if (_ZN5TTrap4TrapERi(&__t,_r)==0){_s;TTrap::UnTrap();}}
 #define TRAP_IGNORE(_s) {TInt _ignore;TTrap __t;if (_ZN5TTrap4TrapERi(&__t,_ignore)==0){_s;TTrap::UnTrap();}}
+#endif
 #endif
 
 #endif

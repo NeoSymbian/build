@@ -111,14 +111,14 @@ def compile_objs(workdir: str) -> list[str]:
         # calling RFile::Open hits the loud unimpl stub. In the EFILE build the same
         # inline is emitted by sf_plugin_shim.cpp; efsrv has no such TU.
         subprocess.run(["bash", SYMCC, src, "-O2", "-fkeep-inline-functions",
-                        *EXTRA, "-o", obj],
+                        *EXTRA, *BE.V8_FLAGS, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     # runtime TUs compile WITHOUT the fileserver -iquote set (gcchelp.cpp's
     # #include "common.h" must resolve to kernel/eka/common's, not sfile's).
     for src in RUNTIME_SOURCES:
         obj = os.path.join(workdir, "efsrv_" + os.path.basename(src) + ".o")
-        subprocess.run(["bash", SYMCC, src, "-O2", "-o", obj],
+        subprocess.run(["bash", SYMCC, src, "-O2", *BE.V8_FLAGS, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     return objs

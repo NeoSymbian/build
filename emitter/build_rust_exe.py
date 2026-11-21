@@ -3,6 +3,7 @@
 Builds every EXE listed in rust/exes.txt, one per line (blank lines and # comments ignored):
 
     <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=libc,libpthread,...] [caps=A,B]
+        [priority=N]
 
 <lib.a> is relative to rust/, built for armv5te-none-eabi; `-` links no Rust at all (a C++-only test program that
 needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Without a glue file the Rust library
@@ -19,6 +20,8 @@ libc, libpthread, libm: browser/wb2-std.md WB2); the glue then also sees P.I.P.S
 `heap=` sets the most the EXE's own heap may grow to (default 1 MB). A Rust EXE with std needs it: std's allocator is
 P.I.P.S.'s malloc on that heap (e32's chunk heap is off under std; docs browser/wb2-std.md, WB2c).
 `caps=` gives a drive=c EXE capabilities by name (e.g. NetworkServices for sockets); ROM EXEs get all of them anyway.
+`priority=` sets the process priority (a TProcessPriority: 150 low, 250 background, 350 foreground (the default), 450
+high, 650 window server, 750 file server, 850 real-time server): hardware daemons that must keep up under load (HWHUB).
 
 Run from repo root:  python3 emitter/build_rust_exe.py [manifest]
 """
@@ -134,9 +137,13 @@ def parse_caps(text: str) -> int:
     return bits
 
 
+# TProcessPriority values (e32std.h): a ROM or C: EXE's header must hold one of them (DProcess::ConvertPriority)
+PRIORITIES = (150, 250, 350, 450, 650, 750, 850)
+
+
 def parse_manifest(
     path: str,
-) -> list[tuple[str, int, str | None, str | None, str, int, list[str], int, int]]:
+) -> list[tuple[str, int, str | None, str | None, str, int, list[str], int, int, int]]:
     exes = []
     with open(path) as fh:
         lines = fh.read().splitlines()
@@ -150,13 +157,15 @@ def parse_manifest(
         stack = int(opts.pop("stack", str(STACK_SIZE)), 0)
         libs = [x for x in opts.pop("libs", "").split(",") if x]
         heap = int(opts.pop("heap", str(HEAP_MAX)), 0)
+        priority = int(opts.pop("priority", "350"), 0)
         try:
             caps = parse_caps(opts.pop("caps", ""))
         except ValueError as e:
             sys.exit(f"{path}:{n}: {e}")
-        if len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c") or heap < HEAP_MIN:
+        if (len(f) < 3 or len(rest) > 1 or opts or drive not in ("z", "c") or heap < HEAP_MIN
+                or priority not in PRIORITIES):
             sys.exit(
-                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=a,b] [caps=A,B]"
+                f"{path}:{n}: want <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=a,b] [caps=A,B] [priority=N]"
             )
         name, uid3 = f[0], int(f[1], 0)
         lib = None if f[2] == "-" else os.path.join(RUST_DIR, f[2])
@@ -168,7 +177,7 @@ def parse_manifest(
         glue = os.path.join(REPO, rest[0]) if rest else None
         if not (lib or glue):
             sys.exit(f"{path}:{n}: {name}: no Rust library (-) needs a glue file")
-        exes.append((name.upper(), uid3, lib, glue, drive, stack, libs, heap, caps))
+        exes.append((name.upper(), uid3, lib, glue, drive, stack, libs, heap, caps, priority))
     if len({e[1] for e in exes}) != len(exes):
         sys.exit(f"{path}: duplicate uid3")
     return exes
@@ -184,6 +193,7 @@ def build_one(
     libs: list[str] | None = None,
     heap: int = HEAP_MAX,
     caps: int = 0,
+    priority: int = 350,
 ) -> bool:
     stem = name.split(".")[0].lower()
     workdir = BE.workdir("rust_" + stem)
@@ -258,6 +268,7 @@ def build_one(
         heap_min=HEAP_MIN,
         heap_max=heap,
         cap1=caps,
+        priority=priority,
         imports=import_list,
         code_relocs=ext.code_relocs,
         code_base=ext.code_base,
@@ -306,8 +317,8 @@ def main() -> int:
         for s in RUNTIME_SOURCES
     ]
     results = [  # build every EXE even when one fails its check
-        build_one(name, uid3, lib, glue, runtime, stack, libs, heap, caps)
-        for name, uid3, lib, glue, _, stack, libs, heap, caps in exes
+        build_one(name, uid3, lib, glue, runtime, stack, libs, heap, caps, priority)
+        for name, uid3, lib, glue, _, stack, libs, heap, caps, priority in exes
     ]
     ok = all(results)
 

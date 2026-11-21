@@ -3,4 +3,4 @@
 # docker/toolchain -> .github/workflows/toolchain.yml publishes; NeoSymbian/symbian-qemu publishes its own (image.yml).
 # To move a pin: run the workflow, take the digest from its summary, change it here.
 BUILD_IMAGE="${BUILD_IMAGE:-ghcr.io/neosymbian/toolchain@sha256:71f91f8ca42c5456859c3477092bef4f69842f6521ba1a4b5554ac7835895b32}"
-QEMU_IMAGE="${QEMU_IMAGE:-ghcr.io/neosymbian/symbian-qemu@sha256:124f3e65da619e123c1820256a2d70a1c871a598f80115e947e3806cf2ddfe33}"
+QEMU_IMAGE="${QEMU_IMAGE:-ghcr.io/neosymbian/symbian-qemu@sha256:f233b7936ee969356e723e0f6b5e29e768a1afe66155ede088b2566cb4cb56f1}"

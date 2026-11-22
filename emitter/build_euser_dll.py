@@ -240,6 +240,8 @@ def _nm(mode: str, *files: str) -> set[str]:
     names: set[str] = set()
     for line in out.splitlines():
         parts = line.split()
+        if not parts or (len(parts) == 1 and parts[0].endswith(":")):
+            continue   # several files: nm separates them with a blank line and a "file.o:" header
         if mode == "--defined-only":
             # "<addr> <T|W|...> <name>" — keep GLOBAL (uppercase) code/data symbols.
             if len(parts) == 3 and parts[1] in ("T", "W", "R", "D", "B", "V"):

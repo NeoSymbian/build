@@ -37,6 +37,8 @@ def self_test():
             return src, 0, ""
 
         def run(args, **kw):
+            if args[0] == B.BE.NM:   # the FP-register check (US3) lists each image's undefined symbols
+                return type("Result", (), {"returncode": 0, "stdout": ""})()
             commands.append(args)
             if args[1] == "rcs":
                 assert args[0] == "/sdk/bin/arm-none-eabi-ar"

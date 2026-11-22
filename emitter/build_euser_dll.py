@@ -3,11 +3,11 @@ unmodified 2010 source with the modern toolchain: compile (toolchain/symcc), lin
 exports), unimplemented-export stubs, the "fill-in" collision rule. build_euser_device.py is the euser image itself;
 the other build_*.py scripts reuse these helpers.
 """
+
 from __future__ import annotations
 
 import os
 import subprocess
-import sys
 
 from euser_def import parse_def
 
@@ -27,16 +27,41 @@ OBJCOPY = "arm-none-eabi-objcopy"
 # .cia never calls its own helpers internally, so we localize them in the object and
 # let libgcc supply the real, correct soft-float for all guest `double`/`float` work.
 UC_REALX_SOFTFLOAT = [
-    "__adddf3", "__subdf3", "__muldf3", "__divdf3",
-    "__addsf3", "__subsf3", "__mulsf3", "__divsf3",
-    "__floatsidf", "__floatsisf", "__extendsfdf2", "__truncdfsf2",
-    "__fixdfsi", "__fixsfsi", "__negdf2", "__negsf2",
-    "__eqdf2", "__nedf2", "__ltdf2", "__ledf2", "__gtdf2", "__gedf2", "__cmpdf3",
-    "__eqsf2", "__nesf2", "__ltsf2", "__lesf2", "__gtsf2", "__gesf2", "__cmpsf3",
+    "__adddf3",
+    "__subdf3",
+    "__muldf3",
+    "__divdf3",
+    "__addsf3",
+    "__subsf3",
+    "__mulsf3",
+    "__divsf3",
+    "__floatsidf",
+    "__floatsisf",
+    "__extendsfdf2",
+    "__truncdfsf2",
+    "__fixdfsi",
+    "__fixsfsi",
+    "__negdf2",
+    "__negsf2",
+    "__eqdf2",
+    "__nedf2",
+    "__ltdf2",
+    "__ledf2",
+    "__gtdf2",
+    "__gedf2",
+    "__cmpdf3",
+    "__eqsf2",
+    "__nesf2",
+    "__ltsf2",
+    "__lesf2",
+    "__gtsf2",
+    "__gesf2",
+    "__cmpsf3",
 ]
 # The frozen euser export ordinals (EABI-mangled, matches our toolchain).
-DEF_PATH = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv", "kernel", "eka",
-                        "eabi", "euseru.def")
+DEF_PATH = os.path.join(
+    REPO, "src", "oss.FCL.sf.os.kernelhwsrv", "kernel", "eka", "eabi", "euseru.def"
+)
 # euser_selftest is not a real euser symbol: the slot just past the real export table is reserved (it points at the
 # unimplemented-export stub) so the extra ordinals after it (TTrap::Trap/UnTrap, build_euser_device.EXTRA_EXPORTS)
 # keep the numbers the importing images are built against.
@@ -52,6 +77,7 @@ def workdir(name: str) -> str:
     os.makedirs(d, exist_ok=True)
     return d
 
+
 # "Fill-in" TUs: large euser source files pulled in for a handful of exports but
 # which redefine many symbols the seams/real TUs already own. After compiling,
 # any global one of these objects defines that ANOTHER (earlier) object also
@@ -59,19 +85,28 @@ def workdir(name: str) -> str:
 # wins and the final link stays collision-free (same idea as UC_REALX_SOFTFLOAT,
 # generalized to whole-symbol collisions). Order matters: fill-ins are processed
 # in list order, so a symbol unique to the fill-ins keeps its first occurrence.
-FILLIN_BASENAMES = ["us_exec.cpp", "us_ksvr.cpp",
-                    # euser TUs that make the exports EFILE.EXE imports real
-                    # (client-server IPC, loader client, publish&subscribe, platsec,
-                    # rw-lock, decompression, the epoc process/lib + atomics/UserSvr).
-                    # All are big "everything" TUs -> fill-ins: fresh symbols
-                    # (CServer2/E32Loader/RProperty/...) stay global; anything an
-                    # earlier proven TU already owns is localized (see
-                    # _localize_fillin_collisions). Order = first occurrence wins.
-                    "us_mes.cpp", "ub_svr.cpp", "us_property.cpp", "us_secure.cpp",
-                    "us_rwlock.cpp", "us_decode.cpp", "up_utl.cpp", "up_lib.cpp",
-                    # common/secure.cpp owns TSecurityPolicy/TCapabilitySet/PlatSec
-                    # (a broad common TU -> fill-in so its overlaps yield to proven TUs).
-                    "secure.cpp"]
+FILLIN_BASENAMES = [
+    "us_exec.cpp",
+    "us_ksvr.cpp",
+    # euser TUs that make the exports EFILE.EXE imports real
+    # (client-server IPC, loader client, publish&subscribe, platsec,
+    # rw-lock, decompression, the epoc process/lib + atomics/UserSvr).
+    # All are big "everything" TUs -> fill-ins: fresh symbols
+    # (CServer2/E32Loader/RProperty/...) stay global; anything an
+    # earlier proven TU already owns is localized (see
+    # _localize_fillin_collisions). Order = first occurrence wins.
+    "us_mes.cpp",
+    "ub_svr.cpp",
+    "us_property.cpp",
+    "us_secure.cpp",
+    "us_rwlock.cpp",
+    "us_decode.cpp",
+    "up_utl.cpp",
+    "up_lib.cpp",
+    # common/secure.cpp owns TSecurityPolicy/TCapabilitySet/PlatSec
+    # (a broad common TU -> fill-in so its overlaps yield to proven TUs).
+    "secure.cpp",
+]
 
 # The real euser sources (ARM, so every export is reachable by a plain blx). build_euser_device.py adds the device-only
 # sources and the executive layer to this list.
@@ -151,12 +186,19 @@ SOURCES = [
 # which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile cpudefs.h knows for
 # ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The final links still
 # take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (a bridge until US3).
-V8_FLAGS = ["-march=armv8-a+crc+crypto", "-mfloat-abi=softfp", "-mword-relocations", "-mno-unaligned-access",
-            "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+V8_FLAGS = [
+    "-march=armv8-a+crc+crypto",
+    "-mfloat-abi=softfp",
+    "-mword-relocations",
+    "-mno-unaligned-access",
+    "-D__CPU_CORTEX_A9__",
+    "-D__SMP__",
+]
 
 
-def compile_objs(workdir: str, sources: list[str] = None,
-                 fillin: list[str] = None, extra_flags=None) -> list[str]:
+def compile_objs(
+    workdir: str, sources: list[str] = None, fillin: list[str] = None, extra_flags=None
+) -> list[str]:
     """Compile every SOURCE to an ARM object; return the object paths.
 
     `sources`/`fillin` default to the lists above; build_euser_device.py passes its own.
@@ -175,8 +217,11 @@ def compile_objs(workdir: str, sources: list[str] = None,
         # GAS can't resolve the cross-function branch ("symbol is in a different
         # section"). Keep this one TU in a single .text (the soft-float cluster is
         # reached as a unit anyway, so nothing is lost to GC).
-        extra = (["-fno-function-sections", "-fno-data-sections"]
-                 if base in ("uc_realx.cia", "atomics.cia") else [])
+        extra = (
+            ["-fno-function-sections", "-fno-data-sections"]
+            if base in ("uc_realx.cia", "atomics.cia")
+            else []
+        )
         # GCC 14 does not honor the spirit of __attribute__((naked)) for functions
         # returning an aggregate via sret: it brackets the asm body with
         # `mov r3,r0 ... mov r0,r3` return-pointer bookkeeping (kept even at -O2 --
@@ -193,15 +238,24 @@ def compile_objs(workdir: str, sources: list[str] = None,
             extra = extra + ["-D__MINIMUM_MACHINE_CODE__"]
         if extra_flags is not None:
             extra = extra + list(extra_flags(base))
-        subprocess.run(["bash", SYMCC, src, "-O2", "-o", obj, *extra], check=True,
-                       env=env, cwd=REPO)
+        subprocess.run(
+            ["bash", SYMCC, src, "-O2", "-o", obj, *extra],
+            check=True,
+            env=env,
+            cwd=REPO,
+        )
         if base in ("cdes8.cia", "cdes16.cia"):
             subprocess.run([OBJCOPY, "--weaken", obj], check=True)
         if base == "uc_realx.cia":
             # Hide the broken GCC-ABI soft-float helpers so libgcc's win.
-            subprocess.run([OBJCOPY,
-                            *sum(([f"--localize-symbol={s}"] for s in UC_REALX_SOFTFLOAT), []),
-                            obj], check=True)
+            subprocess.run(
+                [
+                    OBJCOPY,
+                    *sum(([f"--localize-symbol={s}"] for s in UC_REALX_SOFTFLOAT), []),
+                    obj,
+                ],
+                check=True,
+            )
         objs.append(obj)
 
     _localize_fillin_collisions(objs, fillin)
@@ -217,8 +271,7 @@ def _localize_fillin_collisions(objs: list[str], fillin: list[str] = None) -> No
     symbol unique to the fill-ins keeps its first occurrence global.
     """
     fillin = FILLIN_BASENAMES if fillin is None else fillin
-    fillin_objs = [o for o in objs
-                   if os.path.basename(o).rsplit(".o", 1)[0] in fillin]
+    fillin_objs = [o for o in objs if os.path.basename(o).rsplit(".o", 1)[0] in fillin]
     other_objs = [o for o in objs if o not in fillin_objs]
 
     claimed = _nm("--defined-only", *other_objs) if other_objs else set()
@@ -226,20 +279,28 @@ def _localize_fillin_collisions(objs: list[str], fillin: list[str] = None) -> No
         defined = _nm("--defined-only", obj)
         collisions = sorted(defined & claimed)
         if collisions:
-            subprocess.run([OBJCOPY,
-                            *sum(([f"--localize-symbol={s}"] for s in collisions), []),
-                            obj], check=True)
-        claimed |= (defined - set(collisions))
+            subprocess.run(
+                [
+                    OBJCOPY,
+                    *sum(([f"--localize-symbol={s}"] for s in collisions), []),
+                    obj,
+                ],
+                check=True,
+            )
+        claimed |= defined - set(collisions)
 
 
 def _nm(mode: str, *files: str) -> set[str]:
     """Symbol names from nm; `mode` selects --defined-only / --undefined-only."""
     args = list(files)
-    out = subprocess.run([NM, mode, *args], check=True,
-                         capture_output=True, text=True).stdout
+    out = subprocess.run(
+        [NM, mode, *args], check=True, capture_output=True, text=True
+    ).stdout
     names: set[str] = set()
     for line in out.splitlines():
         parts = line.split()
+        if not parts or (len(parts) == 1 and parts[0].endswith(":")):
+            continue  # several files: nm separates them with a blank line and a "file.o:" header
         if mode == "--defined-only":
             # "<addr> <T|W|...> <name>" — keep GLOBAL (uppercase) code/data symbols.
             if len(parts) == 3 and parts[1] in ("T", "W", "R", "D", "B", "V"):
@@ -250,21 +311,42 @@ def _nm(mode: str, *files: str) -> set[str]:
 
 
 def _libgcc() -> str:
-    return subprocess.run([GCC, "-marm", "-march=armv5te", "-print-libgcc-file-name"],
-                          check=True, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(
+        [GCC, "-marm", "-march=armv5te", "-print-libgcc-file-name"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
-def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
-          ignore_unresolved: bool) -> None:
-    ld = os.path.join(REPO, "emitter", "euser.ld")   # .text@0x8000 + data/bss
+def _link(
+    objs: list[str],
+    roots: list[str],
+    out_elf: str,
+    workdir: str,
+    ignore_unresolved: bool,
+) -> None:
+    ld = os.path.join(REPO, "emitter", "euser.ld")  # .text@0x8000 + data/bss
     # roots go through a response file: 770+ `-u` flags are a very long command line. --gc-sections keeps only
     # sections reachable from the roots.
     rsp = os.path.join(workdir, "roots.rsp")
     with open(rsp, "w") as fh:
         fh.write("\n".join(f"-Wl,-u,{n}" for n in roots))
-    args = [GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections", "-Wl,--no-demangle",
-            f"@{rsp}", f"-Wl,-T,{ld}", "-march=armv5te", "-marm", *objs, _libgcc(),
-            "-o", out_elf]
+    args = [
+        GCC,
+        "-nostdlib",
+        "-Wl,-q",
+        "-Wl,--gc-sections",
+        "-Wl,--no-demangle",
+        f"@{rsp}",
+        f"-Wl,-T,{ld}",
+        "-march=armv5te",
+        "-marm",
+        *objs,
+        _libgcc(),
+        "-o",
+        out_elf,
+    ]
     # extra linker args (--wrap User::Leave, see build_euser_device)
     args[1:1] = os.environ.get("EUSER_LD_EXTRA", "").split()
     if ignore_unresolved:
@@ -272,9 +354,13 @@ def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
     subprocess.run(args, check=True)
 
 
-def compile_and_link(workdir: str, sources: list[str] = None,
-                     fillin: list[str] = None, extra_flags=None, extra_roots=()
-                     ) -> tuple[bytes, list[str], set[str]]:
+def compile_and_link(
+    workdir: str,
+    sources: list[str] = None,
+    fillin: list[str] = None,
+    extra_flags=None,
+    extra_roots=(),
+) -> tuple[bytes, list[str], set[str]]:
     """Build the ELF that backs the full euser export table.
 
     Roots every euser.def symbol our sources actually define (so --gc-sections
@@ -305,17 +391,17 @@ def compile_and_link(workdir: str, sources: list[str] = None,
     stub_s = os.path.join(workdir, "unimpl_stubs.s")
     with open(stub_s, "w") as fh:
         fh.write("\t.text\n\t.arm\n")
-        for i, name in enumerate(missing):
-            fh.write(f"\t.globl {name}\n\t.type {name},%function\n"
-                     f"{name}:\n\tb {STUB_NAME}\n")
+        fh.writelines(
+            f"\t.globl {name}\n\t.type {name},%function\n{name}:\n\tb {STUB_NAME}\n"
+            for i, name in enumerate(missing)
+        )
     stub_o = os.path.join(workdir, "unimpl_stubs.s.o")
-    subprocess.run([GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
-                   check=True)
+    subprocess.run(
+        [GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o], check=True
+    )
 
     # Pass 2: clean link (no unresolved tolerance) with the stubs in place.
     elf2 = os.path.join(workdir, "euser0.elf")
     _link(objs + [stub_o], roots, elf2, workdir, ignore_unresolved=False)
     with open(elf2, "rb") as fh:
         return fh.read(), exportable, set(missing)
-
-

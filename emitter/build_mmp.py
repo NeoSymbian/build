@@ -511,10 +511,13 @@ def build(key: str, rsc_only: bool = False) -> int:
         return 1
 
     # code built with VFP keeps values in d8-d15, which a hand-expanded TRAP (TTrap::Trap, not the overlay's
-    # NeoTrapFp) or a P.I.P.S. setjmp (core registers only) doesn't restore after a leave/longjmp: say where
-    risky = sorted(BE._nm("--undefined-only", *objs) & {"_ZN5TTrap4TrapERi", "setjmp", "_setjmp"})
-    if risky:
-        print(f"  ! VFP code calls {', '.join(risky)}: d8-d15 are not restored by it (US3)")
+    # NeoTrapFp) doesn't restore after a leave: say where. setjmp callers are covered by P.I.P.S. <setjmp.h> (its
+    # d8-d15 clobber, ossrv US3) unless they declare setjmp themselves: listed for review
+    undef = BE._nm("--undefined-only", *objs)
+    if "_ZN5TTrap4TrapERi" in undef:
+        print("  ! VFP code calls TTrap::Trap: d8-d15 are not restored by a leave (US3)")
+    if undef & {"setjmp", "_setjmp"}:
+        print("  . calls setjmp: d8-d15 kept only through <setjmp.h> (US3)")
 
     if is_lib:
         _archive(output, objs)

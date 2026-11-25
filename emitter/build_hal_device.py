@@ -3,10 +3,10 @@
 The third device DLL after euser/efsrv. EFILE imports `HAL::Get` (ord 1);
 sf_cache_man/sf_ldr/sf_utl ask for EMemoryPageSize/ECPUSpeed/EPowerGood.
 
-Built exactly as the real syborg hal.dll (`baseport/syborg/hal/hal.mmp`):
+Built as a board's hal.dll is (Symbian's `<variant>/hal/hal.mmp`), with NeoSymbian's tables:
   * REAL `halservices/hal/src/hal_main.cpp` + `userhal.cpp` (unmodified)
-  * the two GENERATED tables, produced by the REAL generator on the REAL syborg
-    config:  perl halcfg.pl     hal_data.h values.hda -> values.cpp
+  * the two GENERATED tables, produced by the REAL generator on the kernel's
+    baseport/arm64/common/user/hal (values.hda, config.hcf; from Syborg's):  perl halcfg.pl     hal_data.h values.hda -> values.cpp
              perl halcfg.pl -x  hal_data.h config.hcf -> config.cpp
 Exports = halu.def (ord 1 = HAL::Get(TAttribute,TInt&)); euser references are
 REAL IMPORTS via devlink veneers (resolved at load / XIP-prelink time).
@@ -30,22 +30,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 
 HALSRC = os.path.join(devlink.SRC, "halservices", "hal")
-SYBHAL = os.path.join(REPO, "src", "symbian-qemu",
-                      "baseport", "syborg", "hal")
+USERHAL = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv",
+                       "baseport", "arm64", "common", "user", "hal")
 UID3 = 0x100039E8   # hal.mmp UID
 STUB_NAME = BE.STUB_NAME
 
 
 def _generate(workdir: str) -> list[str]:
-    """halcfg.pl on the syborg config -> values.cpp + config.cpp (real tables)."""
+    """halcfg.pl on the kernel's HAL config -> values.cpp + config.cpp (real tables)."""
     halcfg = os.path.join(HALSRC, "halcfg.pl")
     hal_data = os.path.join(HALSRC, "inc", "hal_data.h")
     values_cpp = os.path.join(workdir, "hal_values.cpp")
     config_cpp = os.path.join(workdir, "hal_config.cpp")
     def _perl(*args):
         subprocess.run(["perl", *args], check=True)
-    _perl(halcfg, hal_data, os.path.join(SYBHAL, "values.hda"), values_cpp)
-    _perl(halcfg, "-x", hal_data, os.path.join(SYBHAL, "config.hcf"), config_cpp)
+    _perl(halcfg, hal_data, os.path.join(USERHAL, "values.hda"), values_cpp)
+    _perl(halcfg, "-x", hal_data, os.path.join(USERHAL, "config.hcf"), config_cpp)
     return [values_cpp, config_cpp]
 
 
@@ -113,7 +113,7 @@ def main() -> int:
 
     import_list = devlink.import_blocks(ext, imports)
     n_imp = sum(len(e) for _, e in import_list)
-    print("DEVICE hal (real hal_main/userhal + halcfg.pl syborg tables)")
+    print("DEVICE hal (real hal_main/userhal + halcfg.pl tables, the kernel's common/user/hal)")
     print(f"code: {len(ext.code)} B @0x{ext.code_base:X}   "
           f"data: {len(ext.data)} B   bss: {ext.bss_size} B")
     print(f"exports: {len(export_offsets)} ordinals  "

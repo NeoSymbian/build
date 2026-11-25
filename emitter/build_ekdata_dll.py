@@ -7,7 +7,7 @@ resolves its THREE data-table exports (eabi/ekdata.def):
     2  KeyDataFuncTable(SFuncTables&)
     3  KeyDataSettings(TRadix&, TCtrlDigitsTermination&, TInt&, TInt&)
 
-Built from the REAL syborg keymap (baseport/syborg/keymap/keymap.cpp,
+Built from the REAL keymap (the kernel's baseport/arm64/common/user/keymap/keymap.cpp, Syborg's PC layout,
 keymap.mmp: MACRO __SECURE_API__), unmodified. UIDs: 0x1000008d / 0x100039e0.
 
 Run from repo root:  python3 emitter/build_ekdata_dll.py [out.dll]
@@ -31,8 +31,8 @@ SYMCC = BE.SYMCC
 STUB_NAME = BE.STUB_NAME
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
-KEYMAP = os.path.join(REPO, "src", "symbian-qemu",
-                      "baseport", "syborg", "keymap", "keymap.cpp")
+KEYMAP = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv",
+                      "baseport", "arm64", "common", "user", "keymap", "keymap.cpp")
 
 UID2_DLL = 0x1000008D
 UID3 = 0x100039E0
@@ -106,7 +106,7 @@ def main() -> int:
 
     import_list = devlink.import_blocks(ext, imports)
     n_imp = sum(len(e) for _, e in import_list)
-    print("DEVICE ekdata.dll (syborg keymap data, from source)")
+    print("DEVICE ekdata.dll (the PC keymap data, from source)")
     print(f"code: {len(ext.code)} B @0x{ext.code_base:X}")
     print(f"exports: {len(EXPORTS)}; {n_imp} imports "
           f"({', '.join(f'{d} {len(e)}' for d, e in import_list)}); "

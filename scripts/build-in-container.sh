@@ -15,6 +15,13 @@ grep -v '^#' /work/sources.lock | while IFS="$(printf '	')" read -r pkg commit; 
 		echo "$commit" > "/build/.stamp/$pkg"
 	fi
 done
+# a package that left sources.lock (symbian-qemu, 2026-11-25): its sources and stamp go, so nothing reads them
+for s in /build/.stamp/*; do
+	[ -e "$s" ] || continue
+	grep -q "^${s##*/}$(printf '\t')" /work/sources.lock || { echo "retired src/${s##*/}"; rm -rf "/build/src/${s##*/}" "$s"; }
+done
+# outputs of components that are gone (MiniGUI's grid.exe, 2026-11-25): e32-hashes.txt lists every image in emitter/
+rm -f /build/emitter/grid.exe
 # our own files: always (small)
 tar -C /work -cf - emitter kernel toolchain tools scripts apps | tar -C /build -xf -
 # NeoSymbian: the Rust staticlib(s) dropped into rust/ (none = baseline build)

@@ -109,8 +109,6 @@ COMPONENTS = {
     # NeoSymbian: the stock text console (a client of !E32WindowServer), ECONS.DLL in the UI ROM (kernel/rom_args.py)
     # where the Rust UI replaces the window server and its Terminal app serves !E32WindowServer
     "econs": dict(mmp="oss.FCL.sf.os.kernelhwsrv/kernel/eka/ewsrv/econs.mmp", rom="econs_twin.dll"),
-    # the Symbian Foundation's MiniGUI test app (a plain RWsSession client): the first legacy GUI program
-    "grid": dict(mmp="symbian-qemu/applications/Symbian_MiniGUI_TestApp/Grid.mmp"),
     # ours: NeoNet's C++ client (apps/neonet/neonet.h) for 2010-style programs and ESOCK, and its phone test
     "neonet": dict(mmp="../apps/neonet/neonet.mmp"),
     "neonett": dict(mmp="../apps/neonet/neonett.mmp"),

@@ -23,8 +23,8 @@ DEFS=(-D__SYMBIAN32__ -D__GCCE__ -D__EABI__ -D__MARM__ -D__MARM_ARMV5__ -D__EPOC
 # Deliberately NO -D__GCC32__ (see toolchain/symbian_gcc_prefix.h).
 # The user side is ARMv8-A AArch32 with VFP/NEON inside functions, soft-float calling convention (docs
 # user-side-smp.md US3): -mword-relocations keeps addresses as R_ARM_ABS32 words, which E32 relocations express;
-# __CPU_ARMV8A__ + SMP is the cpudefs.h profile for this CPU (ARMv7's LDREX/STREX and user-side thread data, plus
-# LDA/STL in euser's atomics and RFastLock and CRC32 in Mem::Crc32: user-side-smp.md, ARMv8 profile). __MARM_ARMV5__
+# __CPU_ARMV8A__ + SMP is the cpudefs.h profile for this CPU (ARMv7's LDREX/STREX + DMB and user-side thread data,
+# plus CRC32 in Mem::Crc32: user-side-smp.md, ARMv8 profile). __MARM_ARMV5__
 # stays: it picks sources and frozen .def files, not instructions.
 ARCH=(-march=armv8-a+crc+crypto -mfloat-abi=softfp -mword-relocations -mno-unaligned-access)
 DEFS+=(-D__CPU_ARMV8A__ -D__SMP__)

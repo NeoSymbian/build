@@ -13,7 +13,7 @@ A .FSY is a plain DLL whose ONE export (ordinal 1) is
 against efile.lib -- i.e. it IMPORTS the CFileSystem/CMountCB/CFileCB plugin
 framework from EFILE.EXE's efileu.def export surface (devlink grew the
 efile.exe provider for exactly this build) -- plus efsrv/euser/hal as usual.
-All imports resolve at ROM build (tools/rombuild.py --xip prelink; efile.exe
+All imports resolve at ROM build (the kernel's rombuild.py prelinks XIP images; efile.exe
 carries its export table in the XIP header).
 
 UIDs: uid1 DLL, uid2 0x100039DF (file system plugin -- the loader REQ-UID
@@ -143,7 +143,7 @@ def main() -> int:
             fh.write(f"\t.globl {name}\n\t.type {name},%function\n"
                      f"{name}:\n\tb {STUB_NAME}\n")
     stub_o = os.path.join(workdir, "elocal_unimpl_stubs.s.o")
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", stub_s, "-o", stub_o],
                    check=True)
     if stub_names:
         print(f"elocal: {len(stub_names)} link stubs (unresolved -> loud unimpl):")

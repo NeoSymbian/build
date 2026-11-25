@@ -4,21 +4,17 @@
 # the host needs Docker (and fastboot for `flash`).
 #
 #   neo fetch                    fetch the pinned 2010 sources into src/            (fetch.sh)
-#   neo rom                      build the 2010 user side + the Syborg ROM           (build.sh; SIS=a,b adds legacy's sis.lock packages on C:)
-#   neo boot                     boot that ROM on QEMU Syborg                        (boot.sh; RUN=, SECS=, SCREEN= ...)
+#   neo rom                      build the 2010 user side (ARMv8-A AArch32)          (build.sh; SIS=a,b adds legacy's sis.lock packages on C:)
 #   neo kernel [BOARD]           the AArch64 kernel image with the user side         (kernel: build-ekern.sh)
 #   neo nkernsa [BOARD]          the nanokernel test image                           (kernel: build-kernel.sh)
 #   neo qemu [SECS] [WHAT]       boot the qemu board's image on QEMU virt; WHAT = ekern (default) | kernel (nkernsa)
 #   neo name                     a new build name (date + an invented animal) for NAME=   (tools/buildname.py)
 #   neo diff NAME1 NAME2         what changed between two named builds (releases/NAME.txt), per repo
 #   neo flash [BOARD]            fastboot-boot the board's image (RAM only) and keep its console log (phone.py)
-#   neo live [SECS] | stop       run the ROM (out/minigui.rom) in the background, VNC on 127.0.0.1:5900 (password VNC_PASSWORD,
-#                                default symbian), monitor on 4444, screen and
-#                                serial in out/live/ (watch from a laptop: tools/live/syborg-live.sh, tools/live/mon.sh)
 #
 # BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito, sargo). KERNEL = the kernel checkout
 # (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
-# USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE. SCREEN=WxH sizes `boot`/`live`.
+# USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 . "$HERE/images.sh"
@@ -49,7 +45,6 @@ pyrun() {	# python3 here, or in the build image when the host has none (atlas bu
 case $cmd in
 fetch)   exec sh "$HERE/fetch.sh" ;;
 rom)     exec sh "$HERE/build.sh" ;;
-boot)    exec sh "$HERE/boot.sh" ;;
 kernel)  BOARD=${1:-qemu} kdocker build-ekern.sh
 	# the image's manifest: the ROM's (build.sh) + the kernel commit + the image flags; commit it as releases/NAME.txt
 	# when the image is installed
@@ -69,16 +64,5 @@ qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
 flash)   BOARD=${1:-bonito}
 	exec python3 -I "$KERNEL/baseport/arm64/tools/phone.py" run "$KERNEL/out/ekern-$BOARD/boot.img" \
 		--log "$KERNEL/out/ekern-$BOARD/phone.log" --secs "${SECS:-30}" --product "$BOARD" ${STAY:+--stay} ;;
-live)    if [ "${1:-}" = stop ]; then docker rm -f neosymbian-live >/dev/null && echo "neosymbian-live stopped"; exit 0; fi
-	[ -f "$HERE/out/minigui.rom" ] || { echo "no out/minigui.rom: neo rom first" >&2; exit 1; }
-	L=$HERE/out/live; mkdir -p "$L"
-	cp "$HERE/out/minigui.rom" "$L/"; [ -f "$HERE/out/c_drive.img" ] && cp "$HERE/out/c_drive.img" "$L/"
-	docker rm -f neosymbian-live >/dev/null 2>&1 || true
-	# shellcheck disable=SC2086
-	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"	# as boot.sh: out/ stays the user's
-	docker run -d $user --name neosymbian-live -p 127.0.0.1:4444:4444 -p 127.0.0.1:5900:5900 -v "$L:/work" -e LIVE=1 -e LISTEN=0.0.0.0 \
-		-e VNC_PASSWORD="${VNC_PASSWORD:-symbian}" \
-		-e C_DRIVE=/work/c_drive.img -e SCREEN="${SCREEN:-768x640}" "$QEMU_IMAGE" run-syborg /work/minigui.rom "${1:-3600}" >/dev/null
-	echo "neosymbian-live: VNC 127.0.0.1:5900 (password ${VNC_PASSWORD:-symbian}), monitor 127.0.0.1:4444, screen $L/fb.ppm, serial $L/serial.log (neo live stop)" ;;
-*)       sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'; [ "$cmd" = help ] ;;
+*)       sed -n '3,17p' "$0" | sed 's/^# \{0,1\}//'; [ "$cmd" = help ] ;;
 esac

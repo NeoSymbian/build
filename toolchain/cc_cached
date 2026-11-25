@@ -4,8 +4,8 @@
 # Skips the compile when out.o exists, the command line is the one that produced it (out.o.cmd) and no file the
 # compiler listed in out.o.d (the source + every header it included, via -MMD) is newer than out.o. Otherwise
 # compiles with -MMD -MF out.o.d and records the command line. CC_CACHE=0 disables it (always compile);
-# CC_CACHE_LOG=1 prints hit/miss. Used by toolchain/symcc (sourced: every kernel/driver C++ TU) and
-# kernel/link_ekern.sh; the objects are kept between runs.
+# CC_CACHE_LOG=1 prints hit/miss. Used by toolchain/symcc (sourced: every user-side C++ TU); the objects are kept
+# between runs.
 cc_cached_run() {
   local out="" prev="" a cmd stale f rc
   for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done

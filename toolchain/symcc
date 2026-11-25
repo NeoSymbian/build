@@ -4,35 +4,29 @@
 # a current upstream toolchain + our prefix shim digests the OS source, and the
 # resulting ELF feeds our own emitter/elf.py -> E32Image (no elf2e32).
 #
-# Usage:  toolchain/symcc [-k] <src.cpp> [-o out.o] [extra g++ args...]
-#   -k   kernel-side compile (adds -D__KERNEL_MODE__ + kernel include dir)
+# Usage:  toolchain/symcc <src.cpp> [-o out.o] [extra g++ args...]   (user side; the kernel is NeoSymbian/kernel's)
 # Prints the g++ exit code.
 set -u
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 GXX="${SYMBIAN_GXX:-arm-none-eabi-g++}"
 B="$REPO/src/oss.FCL.sf.os.kernelhwsrv/kernel/eka"
 
-KERNEL=0
-if [ "${1:-}" = "-k" ]; then KERNEL=1; shift; fi
 SRC="$1"; shift
 # user side: -fstack-reuse=named_vars -- `TPckg<T> p(x.Id()); SendReceive(.., &p)` keeps the ADDRESS of a dead
 # temporary; RVCT left such slots alone, GCC reuses them.
-USERFLAGS=(); [ "$KERNEL" = 1 ] || USERFLAGS=(-fstack-reuse=named_vars)
+USERFLAGS=(-fstack-reuse=named_vars)
 # SYMCC_UNWIND=1 (euser, the mmp components): unwind tables (no exceptions of our own), so an old RVCT binary's TRAP
 # -- a C++ catch -- can unwind a leave through our frames; the image links toolchain/dll_rt/unwind_markers.cpp
-[ "$KERNEL" = 1 ] || [ -z "${SYMCC_UNWIND:-}" ] || USERFLAGS+=(-funwind-tables)
+[ -z "${SYMCC_UNWIND:-}" ] || USERFLAGS+=(-funwind-tables)
 
 DEFS=(-D__SYMBIAN32__ -D__GCCE__ -D__EABI__ -D__MARM__ -D__MARM_ARMV5__ -D__EPOC32__ -D_UNICODE)
 # Deliberately NO -D__GCC32__ (see toolchain/symbian_gcc_prefix.h).
 # The user side is ARMv8-A AArch32 with VFP/NEON inside functions, soft-float calling convention (docs
 # user-side-smp.md US3): -mword-relocations keeps addresses as R_ARM_ABS32 words, which E32 relocations express; A9 +
 # SMP is the cpudefs.h profile for ARMv7+ SMP (LDREX/STREX + DMB, the user-side thread data). __MARM_ARMV5__ stays: it
-# picks sources and frozen .def files, not instructions. The 2010 Syborg kernel build (-k) stays ARMv5.
-ARCH=(-march=armv5te)
-if [ "$KERNEL" != 1 ]; then
-  ARCH=(-march=armv8-a+crc+crypto -mfloat-abi=softfp -mword-relocations -mno-unaligned-access)
-  DEFS+=(-D__CPU_CORTEX_A9__ -D__SMP__)
-fi
+# picks sources and frozen .def files, not instructions.
+ARCH=(-march=armv8-a+crc+crypto -mfloat-abi=softfp -mword-relocations -mno-unaligned-access)
+DEFS+=(-D__CPU_CORTEX_A9__ -D__SMP__)
 FLAGS=(-c "${ARCH[@]}" -fshort-wchar -fno-short-enums
        -fno-exceptions -fno-rtti -fpermissive
        -fno-lifetime-dse -fno-strict-aliasing -fno-delete-null-pointer-checks
@@ -73,19 +67,9 @@ INCS=(-I"$REPO/toolchain/overlay" -I"$REPO/toolchain/generated"
       # the 2010 source was written for a case-insensitive file system: tools/casefix.py links the headers whose
       # names have upper-case letters under their lower-case names; searched last, it only supplies what was not found
       -idirafter "$REPO/.casefix")
-if [ "$KERNEL" -eq 1 ]; then
-  DEFS+=(-D__KERNEL_MODE__)
-  # nkern + ARM CPU + memory-model + kernel-arm headers, plus the kinc staging dir that forwards headers the SBS
-  # build exports to a relocated path (e.g. <kernel/heap_hybrid.h> -> include/heap_hybrid.h) which we don't have an
-  # epoc32/include tree to provide. See toolchain/kinc/.
-  INCS+=(-I"$B/include/kernel" -I"$B/include/memmodel"
-         -I"$B/include/nkern" -I"$B/include/nkern/arm"
-         -I"$B/include/kernel/arm" -I"$B/include/memmodel/epoc"
-         -I"$REPO/toolchain/kinc")
-fi
 
 # SYMCC_PRINT=1: print the compiler command (NUL-separated, before the source) and exit -- build_mmp.py and
-# cc_batch.py run g++ directly with it (one shell start per translation unit is slow)
+# build_mmp.py runs g++ directly with it (one shell start per translation unit is slow)
 if [ "${SYMCC_PRINT:-0}" = 1 ]; then printf '%s\0' "$GXX" "${FLAGS[@]}" "${DEFS[@]}" "${INCS[@]}"; exit 0; fi
 # the compile cache (toolchain/cc_cached, sourced -- no extra process per TU): with -o out.o, the TU is compiled only
 # when out.o is missing, its command line changed, or the source / a header it included is newer. CC_CACHE=0 = off.

@@ -111,14 +111,14 @@ def compile_objs(workdir: str) -> list[str]:
         # calling RFile::Open hits the loud unimpl stub. In the EFILE build the same
         # inline is emitted by sf_plugin_shim.cpp; efsrv has no such TU.
         subprocess.run(["bash", SYMCC, src, "-O2", "-fkeep-inline-functions",
-                        *EXTRA, *BE.V8_FLAGS, "-o", obj],
+                        *EXTRA, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     # runtime TUs compile WITHOUT the fileserver -iquote set (gcchelp.cpp's
     # #include "common.h" must resolve to kernel/eka/common's, not sfile's).
     for src in RUNTIME_SOURCES:
         obj = os.path.join(workdir, "efsrv_" + os.path.basename(src) + ".o")
-        subprocess.run(["bash", SYMCC, src, "-O2", *BE.V8_FLAGS, "-o", obj],
+        subprocess.run(["bash", SYMCC, src, "-O2", "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     return objs
@@ -220,7 +220,7 @@ def main() -> int:
         print(f"efsrv: aliased {len(aliases)} inherited-method refs to their base "
               f"class (e.g. {next(iter(aliases))} -> {aliases[next(iter(aliases))]})")
     stub_o = os.path.join(workdir, "efsrv_unimpl_stubs.s.o")
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", stub_s, "-o", stub_o],
                    check=True)
 
     # Root the alias TARGETS: they are weak out-of-line inline bodies referenced

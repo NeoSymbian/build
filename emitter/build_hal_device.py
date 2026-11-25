@@ -60,7 +60,7 @@ def compile_objs(workdir: str) -> list[str]:
     objs = []
     for src in sources:
         obj = os.path.join(workdir, "hal_" + os.path.basename(src) + ".o")
-        subprocess.run(["bash", BE.SYMCC, src, "-O2", *extra, *BE.V8_FLAGS, "-o", obj],
+        subprocess.run(["bash", BE.SYMCC, src, "-O2", *extra, "-o", obj],
                        check=True, env=env, cwd=REPO)
         objs.append(obj)
     return objs
@@ -90,7 +90,7 @@ def main() -> int:
             fh.write(f"\t.globl {name}\n\t.type {name},%function\n"
                      f"{name}:\n\tb {STUB_NAME}\n")
     stub_o = os.path.join(workdir, "hal_unimpl_stubs.s.o")
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", stub_s, "-o", stub_o],
                    check=True)
 
     elf2 = os.path.join(workdir, "hal0.elf")

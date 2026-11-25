@@ -1,5 +1,6 @@
 #!/bin/sh
-# build.sh -- build out/minigui.rom (and out/c_drive.img) from src/ inside the NeoSymbian build image (docker/toolchain).
+# build.sh -- build the 2010 user side (the volume's emitter/ + .ekern-build/rombuild.args, out/c_drive.img,
+# out/e32-hashes.txt) from src/ inside the NeoSymbian build image (docker/toolchain); `neo kernel` packs it into an image.
 # Needs only Docker and a populated src/ (./fetch.sh).
 #
 # The build runs in a Docker volume (BUILD_VOLUME, default neosymbian-build) rather than on the bind-mounted checkout: the sources are

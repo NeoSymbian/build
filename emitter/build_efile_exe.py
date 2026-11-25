@@ -103,7 +103,7 @@ def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
         fh.write("\n".join(f"-Wl,-u,{n}" for n in roots))
     args = [BE.GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections",
             "-Wl,--no-demangle", f"@{rsp}", f"-Wl,-T,{LD_SCRIPT}", *[f"-Wl,--wrap={w}" for w in WRAPS],
-            "-march=armv5te", "-marm", *objs, BE._libgcc(), "-o", out_elf]
+            *BE.GNU_ARCH, *objs, BE._libgcc(), "-o", out_elf]
     if ignore_unresolved:
         args.insert(1, "-Wl,--unresolved-symbols=ignore-all")
     subprocess.run(args, check=True)

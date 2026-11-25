@@ -145,14 +145,13 @@ SOURCES = [
 ]
 
 
-# The core libraries (euser, efsrv, hal) as ARMv8-A AArch32, soft-float calling convention (docs user-side-smp.md US2):
-# appended after symcc's -march=armv5te, so it wins. VFP/NEON and the A9 profile's user-side thread data need our
-# kernel (the phone, QEMU virt): the 2010 Syborg kernel runs neither, and is no longer a target (owner, 2026-11-21). -mword-relocations: addresses as literal words (R_ARM_ABS32),
-# which E32 relocations express (v7+ GCC otherwise uses MOVW/MOVT). A9 + SMP: the CPU profile cpudefs.h knows for
-# ARMv7+ with SMP: LDREX/STREX + DMB, the user-side thread data (TPIDRURW, set by the kernel). The final links still
-# take the root (ARMv5) libgcc/libsupc++, whose v8 multilib has MOVW/MOVT relocations (a bridge until US3).
-V8_FLAGS = ["-march=armv8-a+crc+crypto", "-mfloat-abi=softfp", "-mword-relocations", "-mno-unaligned-access",
-            "-D__CPU_CORTEX_A9__", "-D__SMP__"]
+# The user side is ARMv8-A AArch32 (toolchain/symcc, docs user-side-smp.md); the stubs and veneers we write as
+# assembly are assembled for it too.
+USER_ASM = ["-march=armv8-a", "-marm"]
+# The GNU helpers (libgcc, libsupc++) stay the root multilib's ARMv5 build (owner 2026-11-22): the v8 multilib is
+# Thumb, with MOVW/MOVT relocations E32 can't express. The final links take the same -march, so the driver searches
+# that multilib only.
+GNU_ARCH = ["-marm", "-march=armv5te"]
 
 
 def compile_objs(workdir: str, sources: list[str] = None,
@@ -252,7 +251,7 @@ def _nm(mode: str, *files: str) -> set[str]:
 
 
 def _libgcc() -> str:
-    return subprocess.run([GCC, "-marm", "-march=armv5te", "-print-libgcc-file-name"],
+    return subprocess.run([GCC, *GNU_ARCH, "-print-libgcc-file-name"],
                           check=True, capture_output=True, text=True).stdout.strip()
 
 
@@ -265,7 +264,7 @@ def _link(objs: list[str], roots: list[str], out_elf: str, workdir: str,
     with open(rsp, "w") as fh:
         fh.write("\n".join(f"-Wl,-u,{n}" for n in roots))
     args = [GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections", "-Wl,--no-demangle",
-            f"@{rsp}", f"-Wl,-T,{ld}", "-march=armv5te", "-marm", *objs, _libgcc(),
+            f"@{rsp}", f"-Wl,-T,{ld}", *GNU_ARCH, *objs, _libgcc(),
             "-o", out_elf]
     # extra linker args (--wrap User::Leave, see build_euser_device)
     args[1:1] = os.environ.get("EUSER_LD_EXTRA", "").split()
@@ -311,7 +310,7 @@ def compile_and_link(workdir: str, sources: list[str] = None,
             fh.write(f"\t.globl {name}\n\t.type {name},%function\n"
                      f"{name}:\n\tb {STUB_NAME}\n")
     stub_o = os.path.join(workdir, "unimpl_stubs.s.o")
-    subprocess.run([GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
+    subprocess.run([GCC, *USER_ASM, "-c", stub_s, "-o", stub_o],
                    check=True)
 
     # Pass 2: clean link (no unresolved tolerance) with the stubs in place.

@@ -4,7 +4,7 @@ name: toolchain
 # Builds the NeoSymbian build image (docker/toolchain) and publishes it to ghcr.io/neosymbian/toolchain:
 #   push to main touching docker/toolchain -> :latest + :sha-<short>
 #   workflow_dispatch                      -> the same, on demand
-# build.sh, boot.sh and the kernel's tools pin the image by digest, so a new publish changes nothing until a pin moves.
+# build.sh and neo pin the image by digest, so a new publish changes nothing until a pin moves.
 on:
   push:
     branches: [main]
@@ -33,7 +33,7 @@ jobs:
             readimage 2>&1 | grep -q "Readimage"
             uidcrc 0x10000079 0x100039ce 0x10005b8b /tmp/u && [ "$(wc -c < /tmp/u)" = 16 ]
             qemu-system-aarch64 --version | head -1
-            qemu-system-arm -M help | grep -q "^syborg "
+            qemu-system-aarch64 -M help | grep -q "^virt "
             python3 -c "import PIL"'
       - name: Publish
         run: |

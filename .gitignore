@@ -1,11 +1,8 @@
 /src/
 /out/
 /base/
-/.nkern-build/
 /.ekern-build/
 /.efile-build/
-/.variant-build/
-/.bootstrap-build/
 /.mmp-build/
 /.emitter-build/
 /.epoc32/

@@ -41,3 +41,10 @@ printf '%srom %s build %s\n' "${NEO_BUILD_NAME:+$NEO_BUILD_NAME: }" "$(date -u +
   [ ! -f emitter/sis_rom.args ] || cat emitter/sis_rom.args
   python3 kernel/rom_args.py
 } > "$ARGS"
+# every file it names must exist (the kernel's packager would only fail later, after a prebuilt base was exported)
+python3 - "$ARGS" <<'PY'
+import os, sys
+words = [w.rstrip("\n") for w in open(sys.argv[1]) if w.strip()]
+missing = [v for o, v in zip(words[0::2], words[1::2]) if o in ("--xip", "--data") and not os.path.isfile(v.partition("=")[2])]
+sys.exit("rombuild.args names missing files:\n  " + "\n  ".join(missing) if missing else 0)
+PY

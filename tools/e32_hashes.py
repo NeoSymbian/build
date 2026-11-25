@@ -37,7 +37,7 @@ def read(path):
     with open(path) as fh:
         for line in fh:
             if line.strip():
-                digest, size, name = line.split()
+                digest, size, name = line.rstrip("\n").split(" ", 2)
                 out[name] = (digest, size)
     return out
 
@@ -82,14 +82,16 @@ def main(argv):
         else:
             sys.stdout.write(text)
     elif cmd == "compare" and len(argv) == 4:
-        bad, extra = compare(read(argv[2]), read(argv[3]))
+        a = read(argv[2])
+        if not a:
+            print("e32_hashes: list A is empty")
+            return 1
+        bad, extra = compare(a, read(argv[3]))
         for line in bad:
             print(line)
         if extra:
             print(f"only in B ({len(extra)}): {' '.join(extra)}")
-        print(
-            f"e32_hashes: {'DIFFERENT' if bad else 'same'} ({len(read(argv[2]))} images in A)"
-        )
+        print(f"e32_hashes: {'DIFFERENT' if bad else 'same'} ({len(a)} images in A)")
         return 1 if bad else 0
     elif cmd == "selftest":
         selftest()

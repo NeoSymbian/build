@@ -21,7 +21,8 @@ run the ARMv8 user side).
 
 ## Quick start
 
-You'll need Docker, git and about 4 GB of disk. It works on Linux, macOS and Windows, since the build always runs
+You'll need Docker, git, about 4 GB of disk, and [kernel](https://github.com/NeoSymbian/kernel) checked out as
+`../kernel` (`neo` finds it there; `KERNEL=` points elsewhere). It works on Linux, macOS and Windows, since the build always runs
 inside the NeoSymbian build image ([docker/toolchain](docker/toolchain), published as `ghcr.io/neosymbian/toolchain`).
 
 ```sh

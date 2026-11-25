@@ -37,6 +37,7 @@ mkdir -p /work/out
 rm -rf /work/out/log
 # the Syborg ROM is no longer built (US5): don't leave an old one looking current
 rm -f /build/out/minigui.rom /build/out/minigui.rom.map /work/out/minigui.rom /work/out/minigui.rom.map
+rm -f /work/out/e32-hashes.txt	# a failed build has none: don't leave the last one looking current
 cp -a /build/out/. /work/out/
 NAME="${NEO_BUILD_NAME:-}" python3 -I /work/tools/buildname.py manifest /work/out/manifest.txt || true
 chown -R "${HOST_UID:-0}:${HOST_GID:-0}" /work/out 2>/dev/null || true

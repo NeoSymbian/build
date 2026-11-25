@@ -4,6 +4,7 @@ the export walk's order), the generated version file, and a check that every com
 """
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -36,7 +37,15 @@ def main():
                             env=dict(os.environ, USERNAME='NeoSymbian'))
     # Perl on Unix retains CR from the upstream Windows change-history file;
     # that CR would split the version's generated C++ string literal.
-    (generated / 'fshell_version.cpp').write_bytes(result.stdout.replace(b'\r', b''))
+    version = result.stdout.replace(b'\r', b'')
+    # genver.pl writes the build's clock into fshell.exe, so two builds of the same sources differ; name the pinned
+    # source instead (build-in-container.sh stamps each package's commit), so builds compare byte for byte (US5)
+    stamp = REPO / '.stamp' / PACKAGE
+    pin = stamp.read_text().strip()[:8] if stamp.is_file() else 'unknown'
+    version, n = re.subn(rb'(_L\("(?:Local|GMT) build time: +)[^\\"]*', rb'\g<1>source ' + pin.encode(), version)
+    if n != 2:
+        raise SystemExit('genver.pl output changed: expected 2 build-time lines, found %d' % n)
+    (generated / 'fshell_version.cpp').write_bytes(version)
     sys.path.insert(0, str(REPO / 'emitter'))
     import components
     if not components.COMPONENTS['fshell']['rom_data']:

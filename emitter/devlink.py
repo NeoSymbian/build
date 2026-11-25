@@ -10,7 +10,7 @@ against the from-source DLL set at load/ROM-build time. The pieces:
   * make_veneers() -- one ARM veneer `ldr pc,[pc,#-4]; .word 0` per imported
     symbol, each in its own section (--gc-sections keeps the referenced ones).
     The E32 import block names the veneer's WORD offset; the loader (or the XIP
-    prelinker in tools/rombuild.py) overwrites the word with the resolved
+    prelinker in the kernel's rombuild.py) overwrites the word with the resolved
     export address. Verified: EFILE + efsrv + hal have ZERO data imports, so
     veneers cover the whole device surface.
   * import_blocks() -- group resolved veneers into build_dll's `imports` form.

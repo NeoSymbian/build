@@ -2,7 +2,7 @@
 relocations and import/export tables elf.extract took from a linked ELF.
 
 The layout, flags and constants are the release's own (kernelhwsrv userlibandfileserver/fileserver/inc/f32image.h,
-EPL); everything is little-endian. The image is what the ROM builder (tools/rombuild.py) takes: it prelinks it into the ROM,
+EPL); everything is little-endian. The image is what the ROM builder (the kernel's baseport/arm64/tools/rombuild.py) takes: it prelinks it into the ROM,
 applying the relocations and resolving the ordinal imports.
 """
 

@@ -2,7 +2,7 @@
 # toolchain -- the NeoSymbian build image, for both halves of the system:
 #  - the AArch64 kernel (NeoSymbian/kernel, baseport/arm64/tools): aarch64 GCC 14 (-mabi=ilp32), QEMU (virt),
 #    Python with PIL and the DejaVu fonts (the phone console's font)
-#  - the 2010 ARMv5TE user side (this repo's build.sh): the Arm GNU Toolchain 14.2.rel1 (arm-none-eabi, checksum-
+#  - the 2010 user side, ARMv8-A AArch32 (this repo's build.sh): the Arm GNU Toolchain 14.2.rel1 (arm-none-eabi, checksum-
 #    verified; its binutils also assemble the kernel's AArch32 test program), host gcc/cpp, perl, python3, and the
 #    Symbian host tools rcomp, uidcrc, rofsbuild and readimage, built from source in the first stage
 # Build context = this folder:  docker build -t neosymbian-toolchain docker/toolchain
@@ -41,8 +41,8 @@ RUN curl -fsSL -o /tmp/arm.tar.xz \
     && mkdir -p /opt/arm-gnu && tar -xJf /tmp/arm.tar.xz -C /opt/arm-gnu --strip-components=1 \
     && rm -rf /tmp/arm.tar.xz /opt/arm-gnu/share/doc
 COPY --from=hosttools /opt/symbian-hosttools /opt/symbian-hosttools
-# QEMU (qemu-system-aarch64 for the kernel's virt runs, qemu-system-arm with the Syborg board): the same build as
-# ghcr.io/neosymbian/symbian-qemu, pinned like images.sh's QEMU_IMAGE, so both streams use one QEMU.
+# QEMU (qemu-system-aarch64 for the kernel's virt runs; the image also carries qemu-system-arm): the
+# ghcr.io/neosymbian/symbian-qemu build, pinned by digest.
 COPY --from=ghcr.io/neosymbian/symbian-qemu@sha256:96a35e14fc5fa0855f3cc37c87bc6c91520401dc1ecc24fb2b1d2acb5e601df5 \
      /opt/symbian-qemu /opt/symbian-qemu
 ENV PATH=/opt/arm-gnu/bin:/opt/symbian-hosttools:/opt/symbian-qemu/bin:$PATH \

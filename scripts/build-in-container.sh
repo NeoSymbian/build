@@ -23,6 +23,9 @@ rm -rf /build/rust
 cd /build
 rc=0
 bash scripts/build-steps.sh || rc=$?
+# the E32 images this build made, for comparing builds byte for byte (CI against atlas/the phone, docs user-side-smp.md US5)
+rm -f /build/out/e32-hashes.txt
+[ "$rc" != 0 ] || python3 -I tools/e32_hashes.py list emitter out/e32-hashes.txt
 # BASE_OUT=1 (CI on main): the built state without the sources, the Rust EXEs and out/ -> /work/base, the prebuilt base
 # that lets a build of this same commit skip every step up to eshell (build-steps.sh)
 if [ "$rc" = 0 ] && [ -n "${BASE_OUT:-}" ]; then

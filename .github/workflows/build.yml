@@ -63,5 +63,6 @@ jobs:
           name: boot
           path: |
             out/log/
+            out/e32-hashes.txt
             out/fshell-qemu.log
             out/fshell-qemu-serial.log

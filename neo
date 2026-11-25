@@ -8,6 +8,7 @@
 #   neo kernel [BOARD]           the AArch64 kernel image with the user side         (kernel: build-ekern.sh)
 #   neo nkernsa [BOARD]          the nanokernel test image                           (kernel: build-kernel.sh)
 #   neo qemu [SECS] [WHAT]       boot the qemu board's image on QEMU virt; WHAT = ekern (default) | kernel (nkernsa)
+#                                (VNC=:N: its screen, touch and keys on 127.0.0.1:590N, e.g. VNC=:0 neo qemu 3600)
 #   neo name                     a new build name (date + an invented animal) for NAME=   (tools/buildname.py)
 #   neo diff NAME1 NAME2         what changed between two named builds (releases/NAME.txt), per repo
 #   neo flash [BOARD]            fastboot-boot the board's image (RAM only) and keep its console log (phone.py)
@@ -58,8 +59,10 @@ diff)    pyrun "$HERE/tools/buildname.py" diff "$@" ;;
 nkernsa) BOARD=${1:-qemu} kdocker build-kernel.sh ;;
 qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
 	t=""; [ -t 0 ] && t=-it	# interactive when run from a terminal (type into the serial console)
+	# VNC=:N: QEMU listens inside the container, published on this host's localhost only (no password)
+	vnc=""; [ -z "${VNC:-}" ] || vnc="-e VNC=$VNC -e VNC_LISTEN=0.0.0.0 -p 127.0.0.1:$((5900 + ${VNC#:})):$((5900 + ${VNC#:}))"
 	# shellcheck disable=SC2086
-	docker run --rm $t -e OUT="$OUT" -v "$KERNEL:/kernel" -w /kernel "$BUILD_IMAGE" \
+	docker run --rm $t $vnc -e OUT="$OUT" -v "$KERNEL:/kernel" -w /kernel "$BUILD_IMAGE" \
 		sh baseport/arm64/tools/run-qemu.sh "${1:-60}" ;;
 flash)   BOARD=${1:-bonito}
 	exec python3 -I "$KERNEL/baseport/arm64/tools/phone.py" run "$KERNEL/out/ekern-$BOARD/boot.img" \

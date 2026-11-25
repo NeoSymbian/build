@@ -1,6 +1,6 @@
 """rom_args -- rombuild arguments for every built registry component.
 
-Prints one argument per line (`--xip` / spec / `--data` / spec ...) for kernel/build_rom.sh: every
+Prints one argument per line (`--xip` / spec / `--data` / spec ...) for scripts/build-user-manifest.sh: every
 emitter/components.py entry whose image exists in emitter/, plus the files its build staged for the ROM:
   <image>.romfiles   compiled resources (build_mmp.build_resources)
   <stem>.rsc         ECOM registration next to a plug-in DLL -> \\Resource\\Plugins

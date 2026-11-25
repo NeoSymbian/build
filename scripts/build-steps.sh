@@ -24,8 +24,6 @@ step() {	# step <name> <command...> : run, log, stop on failure
 KEYS=$(python3 -c "import sys; sys.path.insert(0, 'emitter'); import components; print(' '.join(components.COMPONENTS))")
 
 step executive-headers bash toolchain/genexec.sh
-step kernel-nanokernel bash kernel/build_nkern.sh
-step kernel-ekern bash kernel/build_ekern.sh
 step euser python3 emitter/build_euser_device.py
 # the epoc32/include tree the userland mmps #include (abld export equivalent)
 step epoc32-export python3 tools/epoc32_export.py
@@ -74,7 +72,8 @@ if [ -n "${SIS:-}" ]; then
 else
 	rm -f emitter/sis_cdrive.args emitter/sis_rom.args
 fi
-step rom bash kernel/build_rom.sh
+# the user side's file list for the AArch64 kernel's ROM (kernel build-userrom.sh) and the checks below
+step user-manifest bash scripts/build-user-manifest.sh
 # the ROM's imports as the phone's loader (a ROFS) checks them: missing DLLs, ordinals past an export table (report only)
 step romcheck python3 src/legacy/tools/sis.py romcheck
 # C: carries the bitmap font: fntstore's XIP-ROM font path has an alignment bug real NAND phones never hit (they use the
@@ -85,4 +84,4 @@ C_EXTRA=""
 # shellcheck disable=SC2086
 step c-drive python3 tools/mkfat.py out/c_drive.img \
 	"Resource/Fonts/ceurope.gdr=src/oss.FCL.sf.os.graphics/graphicstest/uibench/data/CEUROPE.GDR" $C_EXTRA
-echo "done: out/minigui.rom out/c_drive.img"
+echo "done: .ekern-build/rombuild.args out/c_drive.img out/e32-hashes.txt (then: neo kernel qemu|bonito)"

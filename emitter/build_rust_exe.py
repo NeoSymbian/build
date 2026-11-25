@@ -10,7 +10,7 @@ needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Withou
 defines E32Main itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_glue.cpp) the C++ glue does. Each is linked with the
 EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp), import veneers from the frozen
 .def files and the E32Image writer, as in build_eshell_exe.py. Writes emitter/<name>, emitter/rust_rom.args (the
---xip lines kernel/build_rom.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
+--xip lines scripts/build-user-manifest.sh adds to the ROM) and emitter/rust_cdrive.args (the drive=c EXEs, for the C: drive
 image: Sys/Bin/<NAME>=emitter/<name>.exe per line). An optional rust/data.txt adds plain files to the ROM, one
 `<Z: path>=<file under rust/>` per line (e.g. `Resource\\NeoWeb\\Fonts\\DejaVuSans.ttf=fonts/DejaVuSans.ttf`): the
 browser's fonts and pages. `stack=` sets the main thread's stack (default 128 KB, for Slint;

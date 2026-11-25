@@ -4,7 +4,8 @@ Builds every EXE listed in rust/exes.txt, one per line (blank lines and # commen
 
     <NAME.EXE> <uid3> <lib.a> [glue.cpp] [drive=c] [stack=BYTES] [heap=BYTES] [libs=libc,libpthread,...] [caps=A,B]
 
-<lib.a> is relative to rust/, built for armv5te-none-eabi; `-` links no Rust at all (a C++-only test program that
+<lib.a> is relative to rust/, built for ARMv8-A AArch32 softfp (e32-rs targets/armv8a-neosymbian-eabi.json, or its std
+twin armv8a-symbian-eabi.json; US4); `-` links no Rust at all (a C++-only test program that
 needs its glue file, e.g. e32-rs's IPC client copied to rust/neocli.cpp). Without a glue file the Rust library
 defines E32Main itself (e32-rs `e32::main!`); with one (R0's toolchain/rust/neo_glue.cpp) the C++ glue does. Each is linked with the
 EXE start-up runtime (uc_exe.cia, dev_exe_startup.cpp, gcchelp.cpp, crt_shim.cpp), import veneers from the frozen
@@ -94,6 +95,7 @@ def _link(
         "-Wl,--no-wchar-size-warning",
         f"-Wl,-u,{ENTRY_NAME}",
         f"-Wl,-T,{LD_SCRIPT}",
+        # the driver's -march only names the link; libgcc is BE._libgcc()'s (the kept ARMv5 GNU helpers, US3)
         "-march=armv5te",
         "-marm",
         *objs,

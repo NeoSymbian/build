@@ -1,7 +1,7 @@
 # package<TAB>commit -- the NeoSymbian forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
 # (<package>@<tag>: a second checkout of the same fork at another commit, in src/<package>@<tag>)
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
-oss.FCL.sf.os.kernelhwsrv	650862ab94e0a02d3f6a91e69469db31909c4b78
+oss.FCL.sf.os.kernelhwsrv	d356448c21e44f0f3d04587ffe1b3d430f553197
 oss.FCL.sf.os.ossrv	335156073002750bf2a442c11ac7fd88bd12a78b
 oss.FCL.sf.os.persistentdata	ef8baa21cee9cd1e214e1a7986595c60b3a63271
 oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
@@ -38,4 +38,4 @@ oss.FCL.sf.os.cellularsrv	23c32d6b3e736c5a3d8bbd99b846d5223b998663
 oss.FCL.sf.mw.phonesrv	44089abe398e782d843559f79784c9b6b2c3f271
 oss.FCL.sf.mw.usbservices	ea7d525c670f4cca267f70a29b3dfa47da0e9130
 oss.FCL.sf.os.fshell	fba00b9c012f23bc005dcad9959e6df1186bc705
-legacy	1eb8934d54f9baef5077ecf9eaa4a36563f89924
+legacy	786348d2ceca2faaa7b9a79dd8ae789266d92d6a

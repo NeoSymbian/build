@@ -118,8 +118,8 @@ def _extra_flags_tu(basename: str) -> list[str]:
         return ["-iquote", os.path.join(BE.B, "common")]
     flags = ["-fno-function-sections", "-fno-data-sections"] if basename in _SINGLE_SECTION else []
     if basename.lower().endswith(".cia"):
-        # symcc's A9 + __SMP__ profile gives the .cia files the LDREX/STREX atomics and fast locks with their DMBs
-        # (US0): never the kernel-assisted EFastExecFastAtomic* calls (KERN-EXEC 27 on our kernel) or SWP. Without
+        # symcc's __CPU_ARMV8A__ + __SMP__ profile gives the .cia files the LDREX/STREX atomics and fast locks with
+        # their DMBs (US0): never the kernel-assisted EFastExecFastAtomic* calls (KERN-EXEC 27 on our kernel) or SWP. Without
         # __MARM_ARMV5__, cdes16.cia keeps its descriptor routines in C++ (__DES16_MACHINE_CODED_HWORD__ is ARMv5's),
         # as euser has been built since US0.
         return flags + ["-U__MARM_ARMV5__"]

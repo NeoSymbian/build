@@ -22,11 +22,12 @@ USERFLAGS=(-fstack-reuse=named_vars)
 DEFS=(-D__SYMBIAN32__ -D__GCCE__ -D__EABI__ -D__MARM__ -D__MARM_ARMV5__ -D__EPOC32__ -D_UNICODE)
 # Deliberately NO -D__GCC32__ (see toolchain/symbian_gcc_prefix.h).
 # The user side is ARMv8-A AArch32 with VFP/NEON inside functions, soft-float calling convention (docs
-# user-side-smp.md US3): -mword-relocations keeps addresses as R_ARM_ABS32 words, which E32 relocations express; A9 +
-# SMP is the cpudefs.h profile for ARMv7+ SMP (LDREX/STREX + DMB, the user-side thread data). __MARM_ARMV5__ stays: it
-# picks sources and frozen .def files, not instructions.
+# user-side-smp.md US3): -mword-relocations keeps addresses as R_ARM_ABS32 words, which E32 relocations express;
+# __CPU_ARMV8A__ + SMP is the cpudefs.h profile for this CPU (ARMv7's LDREX/STREX + DMB and user-side thread data,
+# plus CRC32 in Mem::Crc32: user-side-smp.md, ARMv8 profile). __MARM_ARMV5__
+# stays: it picks sources and frozen .def files, not instructions.
 ARCH=(-march=armv8-a+crc+crypto -mfloat-abi=softfp -mword-relocations -mno-unaligned-access)
-DEFS+=(-D__CPU_CORTEX_A9__ -D__SMP__)
+DEFS+=(-D__CPU_ARMV8A__ -D__SMP__)
 FLAGS=(-c "${ARCH[@]}" -fshort-wchar -fno-short-enums
        -fno-exceptions -fno-rtti -fpermissive
        -fno-lifetime-dse -fno-strict-aliasing -fno-delete-null-pointer-checks

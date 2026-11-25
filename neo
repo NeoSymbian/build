@@ -63,7 +63,7 @@ qemu)    what=${2:-ekern}; BOARD=qemu OUT=/kernel/out/$what-qemu
 	vnc=""; [ -z "${VNC:-}" ] || vnc="-e VNC=$VNC -e VNC_LISTEN=0.0.0.0 -p 127.0.0.1:$((5900 + ${VNC#:})):$((5900 + ${VNC#:}))"
 	# shellcheck disable=SC2086
 	docker run --rm $t $vnc -e OUT="$OUT" -v "$KERNEL:/kernel" -w /kernel "$BUILD_IMAGE" \
-		sh baseport/arm64/tools/run-qemu.sh "${1:-60}" ;;
+		run-qemu.sh "${1:-60}" ;;	# NeoSymbian/neoqemu's, on the image's PATH
 flash)   BOARD=${1:-bonito}
 	exec python3 -I "$KERNEL/baseport/arm64/tools/phone.py" run "$KERNEL/out/ekern-$BOARD/boot.img" \
 		--log "$KERNEL/out/ekern-$BOARD/phone.log" --secs "${SECS:-30}" --product "$BOARD" ${STAY:+--stay} ;;

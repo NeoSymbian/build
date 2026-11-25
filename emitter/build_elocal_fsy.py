@@ -143,7 +143,7 @@ def main() -> int:
             fh.write(f"\t.globl {name}\n\t.type {name},%function\n"
                      f"{name}:\n\tb {STUB_NAME}\n")
     stub_o = os.path.join(workdir, "elocal_unimpl_stubs.s.o")
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o],
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", stub_s, "-o", stub_o],
                    check=True)
     if stub_names:
         print(f"elocal: {len(stub_names)} link stubs (unresolved -> loud unimpl):")

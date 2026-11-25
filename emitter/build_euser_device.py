@@ -56,7 +56,7 @@ DEVICE_EXTRA_SOURCES = [
     os.path.join(_EU, "us_utl.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_trp.cpp"),
     # uc_data.cpp: TLocalThreadData's DLL TLS (DllTls/DllSetTls/DllFreeTls/Close), used since the A9 profile turns on
-    # __USERSIDE_THREAD_DATA__ (BE.V8_FLAGS)
+    # __USERSIDE_THREAD_DATA__ (toolchain/symcc)
     os.path.join(_EU, "epoc", "arm", "uc_data.cpp"),
     os.path.join(_EU, "epoc", "arm", "uc_exec.cia"),
     os.path.join(_EU, "epoc", "arm", "uc_utl.cia"),
@@ -113,20 +113,16 @@ def _extra_flags_tu(basename: str) -> list[str]:
     """Per-TU extra compiler args. dev_user_execs.cpp needs the generated-exec macro + the kinc header shim
     (u32exec.h -> exec_user.h bodies); the big grab-bag .cia files need a single .text section."""
     if basename == "dev_user_execs.cpp":
-        return BE.V8_FLAGS + ["-D__GEN_USER_EXEC_CODE__", f"-I{KINC}"]
+        return ["-D__GEN_USER_EXEC_CODE__", f"-I{KINC}"]
     if basename == "heap_hybrid.cpp":	# keeps finding its "..." headers
-        return BE.V8_FLAGS + ["-iquote", os.path.join(BE.B, "common")]
-    flags = BE.V8_FLAGS + (["-fno-function-sections", "-fno-data-sections"] if basename in _SINGLE_SECTION else [])
+        return ["-iquote", os.path.join(BE.B, "common")]
+    flags = ["-fno-function-sections", "-fno-data-sections"] if basename in _SINGLE_SECTION else []
     if basename.lower().endswith(".cia"):
-        # The atomics must match the kernel's CPU configuration (Cortex-A8, kernel/link_ekern.sh EXTRA): with the
-        # symcc default (__MARM_ARMV5__), cpudefs.h selects the kernel-ASSISTED atomics (atomic_*_exec.h ->
-        # FAST_EXEC1(EFastExecFastAtomic*)) and our v7 kernel's fast exec table has no such entries, so the first
-        # __e32_atomic_* call dies KERN-EXEC 27. ARMV7 selects the real LDREX/STREX bodies. It also keeps the fast
-        # locks (RFastLock Wait/Signal) off SWP.
-        # __SMP__ adds the DMBs to RFastLock (the heap's lock), RequestComplete and the _acq/_rel/_ord atomics: without
-        # them the Pixel's 8 cores reorder data around the locks (US0, docs user-side-smp.md). cpudefs.h allows __SMP__
-        # only on Cortex-A9/ARM11MP, so A9 replaces A8N: same ARMv7 user code, the A9 extras are kernel-only CP15 macros.
-        return flags + ["-U__MARM_ARMV5__", "-D__MARM_ARMV7__"]
+        # symcc's A9 + __SMP__ profile gives the .cia files the LDREX/STREX atomics and fast locks with their DMBs
+        # (US0): never the kernel-assisted EFastExecFastAtomic* calls (KERN-EXEC 27 on our kernel) or SWP. Without
+        # __MARM_ARMV5__, cdes16.cia keeps its descriptor routines in C++ (__DES16_MACHINE_CODED_HWORD__ is ARMv5's),
+        # as euser has been built since US0.
+        return flags + ["-U__MARM_ARMV5__"]
     return flags
 
 

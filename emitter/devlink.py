@@ -78,7 +78,7 @@ def make_veneers(workdir: str, names, tag: str) -> str:
                      f"{name}:\n\tldr pc, [pc, #-4]\n\t.word 0\n"
                      f"\t.size {name}, 8\n")
     obj = src + ".o"
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", src, "-o", obj],
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", src, "-o", obj],
                    check=True)
     return obj
 

@@ -136,7 +136,7 @@ def _compile_one(src, obj, flags, env):
 
 
 def _libsupcxx() -> str:
-    return subprocess.run([BE.GCC, "-marm", "-march=armv5te", "-print-file-name=libsupc++.a"],
+    return subprocess.run([BE.GCC, *BE.GNU_ARCH, "-print-file-name=libsupc++.a"],
                           check=True, capture_output=True, text=True).stdout.strip()
 
 
@@ -536,7 +536,7 @@ def build(key: str, rsc_only: bool = False) -> int:
 
     if not m.is_exe:
         entry_o = os.path.join(work, "dll_entry.s.o")
-        subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c",
+        subprocess.run([BE.GCC, *BE.USER_ASM, "-c",
                         f"-DDLL_UID3=0x{(m.uids[1] if len(m.uids) > 1 else 0):08x}",
                         # a DLL allowed writable data (EPOCALLOWDLLDATA / allow_wsd) gets its static constructors
                         # run too
@@ -583,7 +583,7 @@ def build(key: str, rsc_only: bool = False) -> int:
         # EABI DLL of the release -- a private libsupc++ copy brings writable globals and its own std::exception
         archives = [*static_archives, *([_libsupcxx()] if rtti and not comp.get("cxx_runtime") else []), BE._libgcc()]
         args = [BE.GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections", "-Wl,--no-demangle",
-                f"-Wl,-T,{ld}", "-march=armv5te", "-marm", f"@{rsp}",
+                f"-Wl,-T,{ld}", *BE.GNU_ARCH, f"@{rsp}",
                 "-Wl,--start-group", *archives, "-Wl,--end-group", "-o", out]
         if ignore:
             args.insert(1, "-Wl,--unresolved-symbols=ignore-all")
@@ -635,7 +635,7 @@ def build(key: str, rsc_only: bool = False) -> int:
                          f"\t.word _ZTVN10__cxxabiv117__class_type_infoE+8\n\t.word 1f\n"
                          f"1:\t.asciz \"{n[4:]}\"\n\t.align 2\n")
     stub_o = stub_s + ".o"
-    subprocess.run([BE.GCC, "-march=armv5te", "-marm", "-c", stub_s, "-o", stub_o], check=True)
+    subprocess.run([BE.GCC, *BE.USER_ASM, "-c", stub_s, "-o", stub_o], check=True)
 
     elf2 = os.path.join(work, key + ".elf")
     link(objs + [veneer_o, stub_o], elf2, False)

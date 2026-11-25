@@ -95,9 +95,7 @@ def _link(
         "-Wl,--no-wchar-size-warning",
         f"-Wl,-u,{ENTRY_NAME}",
         f"-Wl,-T,{LD_SCRIPT}",
-        # the driver's -march only names the link; libgcc is BE._libgcc()'s (the kept ARMv5 GNU helpers, US3)
-        "-march=armv5te",
-        "-marm",
+        *BE.GNU_ARCH,
         *objs,
         # inventory's registrations (Servo's resource reader...): a constructor in .init_array whose object no symbol
         # pulls from the staticlib; rustc keeps such #[used] statics with its symbols.o, this link must name them

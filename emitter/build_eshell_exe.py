@@ -85,7 +85,7 @@ def _compile(workdir: str) -> list[str]:
 def _link(objs: list[str], out_elf: str, ignore_unresolved: bool) -> None:
     args = [BE.GCC, "-nostdlib", "-Wl,-q", "-Wl,--gc-sections",
             "-Wl,--no-demangle", f"-Wl,-u,{ENTRY_NAME}", f"-Wl,-T,{LD_SCRIPT}",
-            "-march=armv5te", "-marm", *objs, BE._libgcc(), "-o", out_elf]
+            *BE.GNU_ARCH, *objs, BE._libgcc(), "-o", out_elf]
     if ignore_unresolved:
         args.insert(1, "-Wl,--unresolved-symbols=ignore-all")
     subprocess.run(args, check=True)

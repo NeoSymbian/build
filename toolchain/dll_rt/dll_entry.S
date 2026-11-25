@@ -17,7 +17,7 @@
 _E32Dll:
 #ifdef DLL_STATIC_CTORS
 	b	1f
-	nop
+	mov	r0, r0		@ the ARMv5 nop: GNU as encodes `nop` as ARMv8's NOP hint, a different word
 #else
 	mov	r0, #0
 	bx	lr

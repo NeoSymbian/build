@@ -1,14 +1,13 @@
 # package<TAB>commit -- the NeoSymbian forks of the SymbianSource packages the minigui build needs, at the commits it is pinned to
 # (<package>@<tag>: a second checkout of the same fork at another commit, in src/<package>@<tag>)
 oss.FCL.sf.os.deviceplatformrelease	b7c838933e1ac74d3873b8722538aba029479ab2
-oss.FCL.sf.os.kernelhwsrv	d356448c21e44f0f3d04587ffe1b3d430f553197
+oss.FCL.sf.os.kernelhwsrv	f879c9b51d94b2f61a0712185cbb0f61acea2842
 oss.FCL.sf.os.ossrv	335156073002750bf2a442c11ac7fd88bd12a78b
 oss.FCL.sf.os.persistentdata	ef8baa21cee9cd1e214e1a7986595c60b3a63271
 oss.FCL.sf.os.textandloc	59666d6704fee305b0fdd74974f7b4f42659c6a6
 oss.FCL.sf.os.graphics	a111d1239fc1141bd7d90c4c5445e7ae4423a795
 oss.FCL.sf.os.devicesrv	ce33ac3d46a302f839e326636a065bd35a6406e4
 oss.FCL.sf.os.security	79579fe70243065899b3bc4fbc51706e24d9b57b
-symbian-qemu	45a99a16fee325eb3cc2b19d8d9fc87103b4addd
 oss.FCL.sf.mw.uiresources	9f6169049958cc2de74e7647ab58a0be405c7452
 oss.FCL.sf.os.mm	ebaa78373866f90dbf706e8d4eeb59ff65f1e107
 oss.FCL.sf.os.mmaudio	e570595482ceae175114d67b26c23eceab4354b0

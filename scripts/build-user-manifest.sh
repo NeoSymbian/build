@@ -31,7 +31,7 @@ printf '%srom %s build %s\n' "${NEO_BUILD_NAME:+$NEO_BUILD_NAME: }" "$(date -u +
     --xip 'Sys\Bin\ECOMP.FSY=emitter/ecomp.fsy' \
     --xip 'Sys\Bin\EKDATA.DLL=emitter/ekdata.dll' \
     --xip 'Sys\Bin\ESHELL.EXE=emitter/eshell.exe' \
-    --data 'Sys\Data\estart.txt=src/symbian-qemu/baseport/syborg/estart.txt' \
+    --data 'Sys\Data\estart.txt=src/oss.FCL.sf.os.kernelhwsrv/baseport/arm64/common/estart.txt' \
     --data 'System\Data\wsini.ini='$G'/windowing/windowserver/minigui/group/wsini_minigui-stripped.ini' \
     --data 'Resource\NeoSymbian\build.txt=.ekern-build/build.txt' \
     --xinfo 'databss=0x00400000,cap1=0xFFFFFFFF,cap2=0xFFFFFFFF'

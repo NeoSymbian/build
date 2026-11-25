@@ -4,8 +4,8 @@ Compiles the genuine 2010 estart, unmodified:
     fileserver/estart/estart.cpp        (TFSStartup: drive mapping via
                                          Z:\\SYS\\DATA\\ESTART.TXT, FSY mounting,
                                          format, StartSystem)
-    baseport/syborg/estart/estartmain.cpp (TSyborgFSStartup: adds InitHostFS ->
-                                         spawns SVPHOSTFS.EXE, absent -> skipped)
+    fileserver/estart/estartmain.cpp    (the generic E32Main: TFSStartup Init,
+                                         Run, StartSystem; Syborg's added HostFS)
 with -DSYMBIAN_EXCLUDE_ESTART_DOMAIN_MANAGER (a supported configuration: drops the
 domaincli dependency).
 
@@ -35,8 +35,6 @@ LD_SCRIPT = os.path.join(HERE, "efile.ld")
 
 SRC = os.path.join(REPO, "src", "oss.FCL.sf.os.kernelhwsrv")
 FS = os.path.join(SRC, "userlibandfileserver", "fileserver")
-QB = os.path.join(REPO, "src", "symbian-qemu",
-                  "baseport", "syborg")
 
 # estart.mmp: TARGETTYPE exe, UID 0 0x10272C04, no explicit stack/heap (defaults).
 UID2, UID3 = 0, 0x10272C04
@@ -47,7 +45,7 @@ EE = os.path.join(REPO, "toolchain", "efile_exe")
 
 ESTART_SOURCES = [
     os.path.join(FS, "estart", "estart.cpp"),
-    os.path.join(QB, "estart", "estartmain.cpp"),
+    os.path.join(FS, "estart", "estartmain.cpp"),
 ]
 RUNTIME_SOURCES = [
     os.path.join(BE.B, "euser", "epoc", "arm", "uc_exe.cia"),

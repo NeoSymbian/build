@@ -41,11 +41,11 @@ RUN curl -fsSL -o /tmp/arm.tar.xz \
     && mkdir -p /opt/arm-gnu && tar -xJf /tmp/arm.tar.xz -C /opt/arm-gnu --strip-components=1 \
     && rm -rf /tmp/arm.tar.xz /opt/arm-gnu/share/doc
 COPY --from=hosttools /opt/symbian-hosttools /opt/symbian-hosttools
-# QEMU (qemu-system-aarch64 for the kernel's virt runs; the image also carries qemu-system-arm): the
-# ghcr.io/neosymbian/symbian-qemu build, pinned by digest.
-COPY --from=ghcr.io/neosymbian/symbian-qemu@sha256:96a35e14fc5fa0855f3cc37c87bc6c91520401dc1ecc24fb2b1d2acb5e601df5 \
-     /opt/symbian-qemu /opt/symbian-qemu
-ENV PATH=/opt/arm-gnu/bin:/opt/symbian-hosttools:/opt/symbian-qemu/bin:$PATH \
+# QEMU for the kernel's virt runs (qemu-system-aarch64) and its run tools (run-qemu.sh, ui-qemu.py): the
+# ghcr.io/neosymbian/neoqemu build (NeoSymbian/neoqemu), pinned by digest.
+COPY --from=ghcr.io/neosymbian/neoqemu@sha256:7a04753f2288fcc28259add67e8a8abadfca65fc7d5189577fe78248f8474be2 \
+     /opt/neoqemu /opt/neoqemu
+ENV PATH=/opt/arm-gnu/bin:/opt/symbian-hosttools:/opt/neoqemu/bin:$PATH \
     CROSS=aarch64-linux-gnu-
 LABEL org.opencontainers.image.source=https://github.com/NeoSymbian/build \
       org.opencontainers.image.description="NeoSymbian build image: AArch64 kernel + 2010 ARM user side" \

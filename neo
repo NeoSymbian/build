@@ -15,7 +15,7 @@
 #
 # BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito, sargo). KERNEL = the kernel checkout
 # (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
-# USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE.
+# USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, ROFS_SLOT (a|b: the ROFS partition, whatever slot is active), TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 . "$HERE/images.sh"
@@ -26,7 +26,7 @@ cmd=${1:-help}; [ $# -gt 0 ] && shift
 kdocker() {	# kdocker <script> [args]: run a kernel tool in the image, the kernel tree at /kernel, the user side at /s2010
 	user=""; [ "$(uname -s)" = Linux ] && user="--user $(id -u):$(id -g)"
 	env=""
-	for v in USERSIDE USBDEBUG USERROM_SKIP AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_CORE ROFS_INSTALL TEL_DIAGNOSTICS VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
+	for v in USERSIDE USBDEBUG USERROM_SKIP AUTOFASTBOOT CONSOLE EMMC_C ROFS ROFS_CORE ROFS_INSTALL ROFS_SLOT TEL_DIAGNOSTICS VERITY_BAD NKSA_SCALE NKSA_MAIN NKSA_TESTS NKSA_RWTRACE; do
 		eval "val=\${$v:-}"; [ -n "$val" ] && env="$env -e $v=$val"
 	done
 	dtb=${DTB:-${BONITO_DTB:-}}; dmount=""
@@ -49,7 +49,7 @@ rom)     exec sh "$HERE/build.sh" ;;
 kernel)  BOARD=${1:-qemu} kdocker build-ekern.sh
 	# the image's manifest: the ROM's (build.sh) + the kernel commit + the image flags; commit it as releases/NAME.txt
 	# when the image is installed
-	flags=""; for v in USBDEBUG AUTOFASTBOOT EMMC_C ROFS ROFS_CORE ROFS_INSTALL; do eval "val=\${$v:-}"; [ -z "$val" ] || flags="$flags $v=$val"; done
+	flags=""; for v in USBDEBUG AUTOFASTBOOT EMMC_C ROFS ROFS_CORE ROFS_INSTALL ROFS_SLOT; do eval "val=\${$v:-}"; [ -z "$val" ] || flags="$flags $v=$val"; done
 	krev=$(git -c safe.directory='*' -C "$KERNEL" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
 	# shellcheck disable=SC2086
 	pyrun "$HERE/tools/buildname.py" kernel "$HERE/out/manifest.txt" "$krev" "$KERNEL/out/ekern-${1:-qemu}/manifest.txt" $flags \

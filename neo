@@ -13,7 +13,7 @@
 #   neo diff NAME1 NAME2         what changed between two named builds (releases/NAME.txt), per repo
 #   neo flash [BOARD]            fastboot-boot the board's image (RAM only) and keep its console log (phone.py)
 #
-# BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito, sargo). KERNEL = the kernel checkout
+# BOARD = a baseport/arm64/<BOARD>_variant in the kernel tree (qemu = default, bonito, sargo, fajita). KERNEL = the kernel checkout
 # (default: ../kernel beside this repo). Passed into the image when set: DTB (a file; bonito also takes BONITO_DTB),
 # USERSIDE, USBDEBUG (=1: USB debugging on at boot, for images without the UI; else Settings), USERROM_SKIP, AUTOFASTBOOT, CONSOLE, EMMC_C, ROFS, ROFS_CORE (a regex: more images in the core ROM, run in place), ROFS_INSTALL, TEL_DIAGNOSTICS (C7 synthetic modem-fault diagnostics), VERITY_BAD, NKSA_SCALE, NKSA_MAIN, NKSA_TESTS, NKSA_RWTRACE.
 set -eu
